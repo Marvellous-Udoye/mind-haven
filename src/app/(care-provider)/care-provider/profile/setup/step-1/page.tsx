@@ -1,16 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Calendar, Mail, Phone, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SimpleModal from "../../../../../../components/ui/simple-modal";
 import { useCareProviderProgress } from "../../../../../../hooks/use-care-provider-progress";
-import {
-  Calendar,
-  Mail,
-  Phone,
-  User,
-} from "lucide-react";
 
 const qualificationOptions = [
   "Undergraduate",
@@ -28,73 +22,34 @@ export default function StepOnePage() {
   const [licenseModal, setLicenseModal] = useState(false);
   const [hospitalModal, setHospitalModal] = useState(false);
 
-  const [qualification, setQualification] = useState(
-    "Bachelor of Surgery (MBBS)"
-  );
-  const [licenseNumber, setLicenseNumber] = useState("NG-129030-BX");
-  const [hospitalName, setHospitalName] = useState("Lagos Teaching Hospital");
-  const [hospitalAddress, setHospitalAddress] = useState("Ikeja, Lagos");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [dob, setDob] = useState("");
+  const [qualification, setQualification] = useState("");
+  const [licenseNumber, setLicenseNumber] = useState("");
+  const [hospitalName, setHospitalName] = useState("");
+  const [hospitalAddress, setHospitalAddress] = useState("");
+  const [yearsOfExperience, setYearsOfExperience] = useState("");
+  const [bio, setBio] = useState("");
 
   const handleContinue = () => {
     setProgress("professional");
     router.push("/care-provider/profile/setup/step-2");
   };
 
-  const InputRow = ({
-    icon,
-    placeholder,
-    value,
-    onClick,
-    type = "text",
-    onChange,
-    multiline = false,
-  }: {
-    icon: React.ReactNode;
-    placeholder: string;
-    value?: string;
-    onClick?: () => void;
-    type?: string;
-    onChange?: (value: string) => void;
-    multiline?: boolean;
-  }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        "flex w-full items-center gap-3 rounded-2xl border border-[#0f4a4b] bg-[#073133] px-4 py-3 text-left text-sm",
-        onClick ? "cursor-pointer" : "cursor-default",
-      ].join(" ")}
-    >
-      {icon}
-      {multiline ? (
-        <textarea
-          value={value}
-          onChange={(e) => onChange?.(e.target.value)}
-          placeholder={placeholder}
-          className="h-20 w-full resize-none bg-transparent text-white placeholder:text-white/50 focus:outline-none"
-        />
-      ) : (
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange?.(e.target.value)}
-          placeholder={placeholder}
-          className="w-full bg-transparent text-white placeholder:text-white/50 focus:outline-none"
-        />
-      )}
-    </button>
-  );
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <button
+          type="button"
           onClick={() => router.back()}
           className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-[#0C4031]"
         >
           <ArrowLeft size={20} />
         </button>
         <button
+          type="button"
           onClick={() => router.push("/care-provider/home")}
           className="text-sm text-white/70"
         >
@@ -102,7 +57,7 @@ export default function StepOnePage() {
         </button>
       </div>
 
-      <div className="">
+      <div>
         <p className="text-sm text-white/60">Step 1 of 3</p>
         <h1 className="mt-1 text-xl font-semibold text-[#52c340]">
           Basic Information
@@ -119,64 +74,69 @@ export default function StepOnePage() {
         </div>
 
         <div className="mt-6 space-y-4">
-          <InputRow
+          <EditableInputRow
             icon={<User size={16} className="text-white/70" />}
             placeholder="Full Name"
-            value="Dr Oke-albert campbell"
-            onChange={() => {}}
+            value={fullName}
+            onChange={setFullName}
           />
-          <InputRow
+          <EditableInputRow
             icon={<Mail size={16} className="text-white/70" />}
             placeholder="Email Address"
-            value="campbellalbertoke@gmail.com"
-            onChange={() => {}}
+            value={email}
+            onChange={setEmail}
+            type="email"
           />
-          <InputRow
+          <EditableInputRow
             icon={<Phone size={16} className="text-white/70" />}
-            placeholder="+234 Mobile Number"
-            value="+234 709405281"
-            onChange={() => {}}
+            placeholder="Phone Number"
+            value={phone}
+            onChange={setPhone}
+            type="tel"
           />
-          <InputRow
+          <EditableInputRow
             icon={<Calendar size={16} className="text-white/70" />}
-            placeholder="D.O.B"
-            value="12/12/2024"
-            onChange={() => {}}
+            placeholder="Date of Birth"
+            value={dob}
+            onChange={setDob}
+            type="date"
           />
-          <InputRow
+          <ActionInputRow
             icon={<User size={16} className="text-white/70" />}
             placeholder="Educational Qualification"
             value={qualification}
             onClick={() => setQualificationModal(true)}
           />
-          <InputRow
+          <ActionInputRow
             icon={<User size={16} className="text-white/70" />}
             placeholder="Medical License Number"
             value={licenseNumber}
             onClick={() => setLicenseModal(true)}
           />
-          <InputRow
+          <ActionInputRow
             icon={<User size={16} className="text-white/70" />}
             placeholder="Add Your Hospital"
             value={hospitalName}
             onClick={() => setHospitalModal(true)}
           />
-          <InputRow
+          <EditableInputRow
             icon={<User size={16} className="text-white/70" />}
             placeholder="Years of Experience"
-            value="10"
-            onChange={() => {}}
+            value={yearsOfExperience}
+            onChange={setYearsOfExperience}
+            type="number"
           />
-          <InputRow
+          <EditableInputRow
             icon={<User size={16} className="text-white/70" />}
             placeholder="Write about yourself"
-            value="Passionate about mental wellness."
+            value={bio}
+            onChange={setBio}
             multiline
-            onChange={() => {}}
           />
         </div>
 
         <button
+          type="button"
           onClick={handleContinue}
           className="mt-8 w-full rounded-2xl bg-white py-3 text-base font-semibold text-black"
         >
@@ -196,6 +156,7 @@ export default function StepOnePage() {
             return (
               <button
                 key={option}
+                type="button"
                 onClick={() => {
                   setQualification(option);
                   setQualificationModal(false);
@@ -208,7 +169,7 @@ export default function StepOnePage() {
                 ].join(" ")}
               >
                 {option}
-                {active && <span>✓</span>}
+                {active && <span>✔</span>}
               </button>
             );
           })}
@@ -229,6 +190,7 @@ export default function StepOnePage() {
             placeholder="License Number"
           />
           <button
+            type="button"
             className="w-full rounded-2xl bg-white py-3 text-sm font-semibold text-black"
             onClick={() => setLicenseModal(false)}
           >
@@ -257,6 +219,7 @@ export default function StepOnePage() {
             placeholder="Hospital Address"
           />
           <button
+            type="button"
             className="w-full rounded-2xl bg-white py-3 text-sm font-semibold text-black"
             onClick={() => setHospitalModal(false)}
           >
@@ -265,5 +228,68 @@ export default function StepOnePage() {
         </div>
       </SimpleModal>
     </div>
+  );
+}
+
+function EditableInputRow({
+  icon,
+  placeholder,
+  value,
+  onChange,
+  type = "text",
+  multiline = false,
+}: {
+  icon: React.ReactNode;
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  multiline?: boolean;
+}) {
+  return (
+    <label className="flex w-full items-start gap-3 rounded-2xl border border-[#0f4a4b] bg-[#073133] px-4 py-3 text-sm text-white">
+      <span className="mt-1 text-white/70">{icon}</span>
+      {multiline ? (
+        <textarea
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className="h-20 flex-1 resize-none bg-transparent text-white placeholder:text-white/50 focus:outline-none"
+        />
+      ) : (
+        <input
+          type={type}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className="flex-1 bg-transparent text-white placeholder:text-white/50 focus:outline-none"
+        />
+      )}
+    </label>
+  );
+}
+
+function ActionInputRow({
+  icon,
+  placeholder,
+  value,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  placeholder: string;
+  value: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded-2xl border border-[#0f4a4b] bg-[#073133] px-4 py-3 text-left text-sm text-white"
+    >
+      <span className="text-white/70">{icon}</span>
+      <span className={value ? "font-semibold" : "text-white/50"}>
+        {value || placeholder}
+      </span>
+    </button>
   );
 }

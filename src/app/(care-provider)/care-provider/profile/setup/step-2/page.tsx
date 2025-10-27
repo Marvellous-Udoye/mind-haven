@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, MapPin, DollarSign } from "lucide-react";
+import { ArrowLeft, DollarSign, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SimpleModal from "../../../../../../components/ui/simple-modal";
 import { useCareProviderProgress } from "../../../../../../hooks/use-care-provider-progress";
@@ -15,12 +15,19 @@ const serviceOptions = [
 export default function StepTwoPage() {
   const router = useRouter();
   const { setProgress } = useCareProviderProgress();
-  const [gender, setGender] = useState<"male" | "female">("male");
+
+  const [gender, setGender] = useState<"male" | "female" | null>(null);
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [country, setCountry] = useState("");
+  const [specialization, setSpecialization] = useState("");
+  const [homeCharge, setHomeCharge] = useState("");
+
   const [availableTimesModal, setAvailableTimesModal] = useState(false);
   const [serviceModal, setServiceModal] = useState(false);
-  const [availableTime, setAvailableTime] = useState("Mon - Fri • 9am - 4pm");
-  const [service, setService] = useState("Home service");
-  const [serviceCharge, setServiceCharge] = useState("₦30,000");
+  const [availableTime, setAvailableTime] = useState("");
+  const [service, setService] = useState("");
+  const [serviceCharge, setServiceCharge] = useState("");
 
   const handleContinue = () => {
     setProgress("documents");
@@ -31,12 +38,14 @@ export default function StepTwoPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <button
+          type="button"
           onClick={() => router.back()}
           className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-[#0C4031]"
         >
           <ArrowLeft size={20} />
         </button>
         <button
+          type="button"
           onClick={() => router.push("/care-provider/home")}
           className="text-sm text-white/70"
         >
@@ -44,7 +53,7 @@ export default function StepTwoPage() {
         </button>
       </div>
 
-      <div className="">
+      <div>
         <p className="text-sm text-white/60">Step 2 of 3</p>
         <h1 className="mt-1 text-xl font-semibold text-[#52c340]">
           Professional Information
@@ -54,6 +63,7 @@ export default function StepTwoPage() {
         <div className="mt-6 grid grid-cols-2 gap-3">
           {(["male", "female"] as const).map((option) => (
             <button
+              type="button"
               key={option}
               onClick={() => setGender(option)}
               className={[
@@ -69,13 +79,35 @@ export default function StepTwoPage() {
         </div>
 
         <div className="mt-6 space-y-4">
-          <InputRow placeholder="Address" icon={<MapPin size={16} />} />
-          <InputRow placeholder="City" icon={<MapPin size={16} />} />
-          <InputRow placeholder="Nigeria" icon={<MapPin size={16} />} />
-          <InputRow placeholder="Specialization*" icon={<MapPin size={16} />} />
-          <InputRow
+          <InlineInput
+            placeholder="Address"
+            icon={<MapPin size={16} />}
+            value={address}
+            onChange={setAddress}
+          />
+          <InlineInput
+            placeholder="City"
+            icon={<MapPin size={16} />}
+            value={city}
+            onChange={setCity}
+          />
+          <InlineInput
+            placeholder="Country"
+            icon={<MapPin size={16} />}
+            value={country}
+            onChange={setCountry}
+          />
+          <InlineInput
+            placeholder="Specialization*"
+            icon={<MapPin size={16} />}
+            value={specialization}
+            onChange={setSpecialization}
+          />
+          <InlineInput
             placeholder="Home Service Charge*"
             icon={<DollarSign size={16} />}
+            value={homeCharge}
+            onChange={setHomeCharge}
           />
           <ActionRow
             label="Add available times*"
@@ -85,11 +117,18 @@ export default function StepTwoPage() {
           <ActionRow
             label="Add your services*"
             onClick={() => setServiceModal(true)}
-            value={`${service} • ${serviceCharge}`}
+            value={
+              service
+                ? serviceCharge
+                  ? `${service} • ${serviceCharge}`
+                  : service
+                : ""
+            }
           />
         </div>
 
         <button
+          type="button"
           onClick={handleContinue}
           className="mt-8 w-full rounded-2xl bg-white py-3 text-base font-semibold text-black"
         >
@@ -110,6 +149,7 @@ export default function StepTwoPage() {
             placeholder="Describe your availability"
           />
           <button
+            type="button"
             className="w-full rounded-2xl bg-white py-3 text-sm font-semibold text-black"
             onClick={() => setAvailableTimesModal(false)}
           >
@@ -130,6 +170,9 @@ export default function StepTwoPage() {
               onChange={(e) => setService(e.target.value)}
               className="w-full bg-transparent text-white focus:outline-none"
             >
+              <option value="" className="text-black">
+                Select service
+              </option>
               {serviceOptions.map((opt) => (
                 <option value={opt} key={opt} className="text-black">
                   {opt}
@@ -144,6 +187,7 @@ export default function StepTwoPage() {
             placeholder="Service charge"
           />
           <button
+            type="button"
             className="w-full rounded-2xl bg-white py-3 text-sm font-semibold text-black"
             onClick={() => setServiceModal(false)}
           >
@@ -155,21 +199,27 @@ export default function StepTwoPage() {
   );
 }
 
-function InputRow({
+function InlineInput({
   placeholder,
   icon,
+  value,
+  onChange,
 }: {
   placeholder: string;
   icon: React.ReactNode;
+  value: string;
+  onChange: (value: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-[#0f4a4b] bg-[#073133] px-4 py-3 text-sm text-white/80">
-      {icon}
+    <label className="flex items-center gap-3 rounded-2xl border border-[#0f4a4b] bg-[#073133] px-4 py-3 text-sm text-white">
+      <span className="text-white/70">{icon}</span>
       <input
-          className="w-full bg-transparent text-white placeholder:text-white/50 focus:outline-none"
-          placeholder={placeholder}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full bg-transparent text-white placeholder:text-white/50 focus:outline-none"
+        placeholder={placeholder}
       />
-    </div>
+    </label>
   );
 }
 
@@ -184,11 +234,14 @@ function ActionRow({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className="w-full rounded-2xl border border-[#0f4a4b] bg-[#073133] px-4 py-3 text-left text-sm text-white"
     >
       <p className="text-white/60">{label}</p>
-      {value && <p className="mt-1 font-semibold">{value}</p>}
+      <p className="mt-1 font-semibold">
+        {value ? value : "Not set yet"}
+      </p>
     </button>
   );
 }

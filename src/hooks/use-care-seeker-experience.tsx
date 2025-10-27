@@ -7,7 +7,7 @@ import {
   useEffect,
   useMemo,
   useState,
-  ReactNode,
+  type ReactNode,
 } from "react";
 import type { CareModule } from "../types/care";
 
@@ -17,15 +17,15 @@ export interface Appointment {
   doctorName: string;
   specialty: string;
   module: CareModule;
-  date: string; // ISO string
-  time: string; // e.g. 2025-01-15T15:00
+  date: string;
+  time: string;
   locationType: "home" | "clinic";
   location: string;
   status: "upcoming" | "completed";
 }
 
 export interface Message {
-  id: string; // doctorId
+  id: string;
   doctorName: string;
   avatar: string;
   lastUpdated: string;
@@ -43,7 +43,6 @@ interface CareSeekerContextValue {
     avatar: string
   ) => void;
   appendMessage: (doctorId: string, text: string) => void;
-  resetData: () => void;
 }
 
 const STORAGE_KEY = "care-seeker-experience";
@@ -52,40 +51,9 @@ const CareSeekerContext = createContext<CareSeekerContextValue | undefined>(
   undefined
 );
 
-const initialState = {
-  appointments: [] as Appointment[],
-  messages: [
-    {
-      id: "callum",
-      doctorName: "Callum Davies",
-      avatar: "/care-provider.png",
-      lastUpdated: new Date().toISOString(),
-      preview: "Just breathe in and out",
-      history: [
-        { author: "doctor", text: "Just breathe in and out", at: new Date().toISOString() },
-      ],
-    },
-    {
-      id: "daniel",
-      doctorName: "Daniel Abayomi",
-      avatar: "/care-provider.png",
-      lastUpdated: new Date().toISOString(),
-      preview: "Daniel scheduled an appointment for 20th February 2025 by 10pm",
-      history: [
-        { author: "doctor", text: "Daniel scheduled an appointment for 20th February 2025 by 10pm", at: new Date().toISOString() },
-      ],
-    },
-    {
-      id: "habibah",
-      doctorName: "Habibah Ituah",
-      avatar: "/care-provider.png",
-      lastUpdated: new Date().toISOString(),
-      preview: "Hope you are actually feeling better now",
-      history: [
-        { author: "doctor", text: "Hope you are actually feeling better now", at: new Date().toISOString() },
-      ],
-    },
-  ] as Message[],
+const initialState: Pick<CareSeekerContextValue, "appointments" | "messages"> = {
+  appointments: [],
+  messages: [],
 };
 
 export function CareSeekerProvider({ children }: { children: ReactNode }) {
@@ -93,6 +61,7 @@ export function CareSeekerProvider({ children }: { children: ReactNode }) {
     initialState.appointments
   );
   const [messages, setMessages] = useState<Message[]>(initialState.messages);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -110,13 +79,14 @@ export function CareSeekerProvider({ children }: { children: ReactNode }) {
         // ignore parse errors
       }
     }
+    setHydrated(true);
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (!hydrated || typeof window === "undefined") return;
     const payload = JSON.stringify({ appointments, messages });
     window.localStorage.setItem(STORAGE_KEY, payload);
-  }, [appointments, messages]);
+  }, [appointments, messages, hydrated]);
 
   const upsertAppointment = useCallback((appointment: Appointment) => {
     setAppointments((prev) => {
@@ -153,29 +123,38 @@ export function CareSeekerProvider({ children }: { children: ReactNode }) {
   );
 
   const appendMessage = useCallback((doctorId: string, text: string) => {
-    setMessages((prev) =>
-      prev.map((conversation) => {
-        if (conversation.id !== doctorId) return conversation;
-        const now = new Date().toISOString();
-        return {
-          ...conversation,
-          lastUpdated: now,
-          preview: text,
-          history: [
-            ...conversation.history,
-            { author: "user", text, at: now },
-          ],
-        };
-      })
-    );
-  }, []);
+    const trimmed = text.trim();
+    if (!trimmed) return;
 
-  const resetData = useCallback(() => {
-    setAppointments(initialState.appointments);
-    setMessages(initialState.messages);
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem(STORAGE_KEY);
-    }
+    setMessages((prev) => {
+      const conversation = prev.find((m) => m.id === doctorId);
+      if (!conversation) {
+        return prev;
+      }
+      const now = new Date();
+      const userEntry = {
+        author: "user" as const,
+        text: trimmed,
+        at: now.toISOString(),
+      };
+      const replyText = `Hi, I am ${conversation.doctorName}, how may I help you?`;
+      const replyEntry = {
+        author: "doctor" as const,
+        text: replyText,
+        at: new Date(now.getTime() + 400).toISOString(),
+      };
+
+      return prev.map((message) => {
+        if (message.id !== doctorId) return message;
+        const history = [...message.history, userEntry, replyEntry];
+        return {
+          ...message,
+          history,
+          lastUpdated: replyEntry.at,
+          preview: replyText,
+        };
+      });
+    });
   }, []);
 
   const value = useMemo(
@@ -185,9 +164,8 @@ export function CareSeekerProvider({ children }: { children: ReactNode }) {
       upsertAppointment,
       ensureConversation,
       appendMessage,
-      resetData,
     }),
-    [appointments, messages, upsertAppointment, ensureConversation, appendMessage, resetData]
+    [appointments, messages, upsertAppointment, ensureConversation, appendMessage]
   );
 
   return (

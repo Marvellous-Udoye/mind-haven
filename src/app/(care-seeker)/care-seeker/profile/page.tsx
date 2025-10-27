@@ -5,13 +5,11 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useAuthSession } from "../../../../hooks/use-auth-session";
-import { useCareSeekerExperience } from "../../../../hooks/use-care-seeker-experience";
 
 export default function ProfilePage() {
   const router = useRouter();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { profile, hydrated, selectIdentity } = useAuthSession();
-  const { resetData } = useCareSeekerExperience();
 
   const fullName = useMemo(() => {
     if (!profile) return "Guest User";
@@ -43,7 +41,6 @@ export default function ProfilePage() {
 
   const handleLogout = () => {
     selectIdentity(null);
-    resetData();
     setShowLogoutConfirm(false);
     router.push("/login?identity=seeker");
   };

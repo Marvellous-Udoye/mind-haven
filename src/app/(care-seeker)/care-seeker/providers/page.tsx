@@ -183,7 +183,6 @@ function ProviderFlowContent() {
                 />
                 <div>
                   <p className="font-semibold">{doctor.name}</p>
-                  <p className="text-sm text-white/70">{doctor.role}</p>
                   <p className="text-xs text-white/50">
                     Reviews: {doctor.reviews}
                   </p>

@@ -12,12 +12,6 @@ const quickActions = [
     subtitle: "Talk to a therapist",
     icon: "/mental-icon.svg",
   },
-  {
-    key: "hospital" as const,
-    title: "Hospital Aid",
-    subtitle: "Book a checkup",
-    icon: "/hospital-icon.svg",
-  },
 ];
 
 export default function CareSeekerHome() {
@@ -52,7 +46,7 @@ export default function CareSeekerHome() {
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-4">
+        <div className="mt-6 grid grid-cols-1 gap-4">
           {quickActions.map((item) => (
             <button
               key={item.key}
@@ -87,7 +81,7 @@ export default function CareSeekerHome() {
                 </svg>
               </span>
               <p
-                className="whitespace-pre-line text-center text-base font-semibold text-black"
+                className="whitespace-nowrap text-center text-base font-semibold text-black"
                 style={{
                   fontWeight: 400,
                 }}

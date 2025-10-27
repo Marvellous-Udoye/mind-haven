@@ -1,50 +1,37 @@
 "use client";
 
-import { useMemo } from "react";
+import { Suspense, useState } from "react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { useCareProviderProgress } from "../../../../../hooks/use-care-provider-progress";
 import { getProgressBlockingUI } from "../../../../../utils/care-provider-progress";
-
-const conversations: Record<
-  string,
-  { name: string; messages: Array<{ author: "doctor" | "patient"; text: string }> }
-> = {
-  callum: {
-    name: "Callum Davies",
-    messages: [
-      { author: "patient", text: "I have a burning sensation in my throat" },
-      { author: "doctor", text: "Let's schedule a quick call tomorrow morning." },
-    ],
-  },
-  daniel: {
-    name: "Daniel Abayomi",
-    messages: [
-      { author: "doctor", text: "Daniel, how are you feeling today?" },
-      { author: "patient", text: "Omo my bro I dey alright hby" },
-      { author: "doctor", text: "Remember to rest and stay hydrated." },
-    ],
-  },
-  habibah: {
-    name: "Habibah Ituah",
-    messages: [
-      { author: "patient", text: "Thank you doctor, I feel a lot better" },
-      { author: "doctor", text: "Great news Habibah!" },
-    ],
-  },
-};
+import { useCareProviderExperience } from "../../../../../hooks/use-care-provider-experience";
 
 export default function ProviderMessageDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-full items-center justify-center text-white/60">
+          Opening chat...
+        </div>
+      }
+    >
+      <ProviderMessageDetailContent />
+    </Suspense>
+  );
+}
+
+function ProviderMessageDetailContent() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const { progress, hydrated } = useCareProviderProgress();
-  const convo = conversations[params.id] ?? conversations.callum;
+  const { messages, appendMessage } = useCareProviderExperience();
 
-  const blockingState = useMemo(
-    () => getProgressBlockingUI(progress, router),
-    [progress, router]
-  );
+  const conversation = messages.find((item) => item.id === params.id);
+  const [draft, setDraft] = useState("");
+
+  const blockingState = getProgressBlockingUI(progress, router);
 
   if (!hydrated) {
     return (
@@ -56,8 +43,19 @@ export default function ProviderMessageDetailPage() {
     return blockingState;
   }
 
+  if (!conversation) {
+    router.replace("/care-provider/messages");
+    return null;
+  }
+
+  const handleSend = () => {
+    if (!draft.trim()) return;
+    appendMessage(conversation.id, draft);
+    setDraft("");
+  };
+
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex h-full flex-col gap-4 pb-6">
       <div className="flex items-center gap-4">
         <button
           onClick={() => router.push("/care-provider/messages")}
@@ -67,27 +65,27 @@ export default function ProviderMessageDetailPage() {
         </button>
         <div className="flex items-center gap-3">
           <Image
-            src="/care-seeker.png"
-            alt={convo.name}
+            src={conversation.avatar || "/care-seeker.png"}
+            alt={conversation.patient}
             width={42}
             height={42}
             className="rounded-full object-cover"
           />
           <div>
-            <p className="text-lg font-semibold">{convo.name}</p>
+            <p className="text-lg font-semibold">{conversation.patient}</p>
           </div>
         </div>
       </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto rounded-3xl bg-[#111111] p-4">
-        {convo.messages.map((message, idx) => {
-          const isDoctor = message.author === "doctor";
+        {conversation.history.map((message, idx) => {
+          const isProvider = message.author === "provider";
           return (
-            <div key={idx} className={`flex ${isDoctor ? "justify-end" : ""}`}>
+            <div key={idx} className={`flex ${isProvider ? "justify-end" : ""}`}>
               <p
                 className={[
                   "max-w-[80%] rounded-2xl px-4 py-3 text-sm",
-                  isDoctor ? "bg-[#0B5B49] text-white" : "bg-white text-black",
+                  isProvider ? "bg-[#0B5B49] text-white" : "bg-white text-black",
                 ].join(" ")}
               >
                 {message.text}
@@ -95,18 +93,25 @@ export default function ProviderMessageDetailPage() {
             </div>
           );
         })}
-        <div className="rounded-2xl border border-white/10 px-4 py-3 text-xs text-white/60">
-          Daniel scheduled an appointment for 20th February 2025 by 10pm
-        </div>
+        {conversation.history.length === 0 && (
+          <div className="rounded-2xl border border-white/10 px-4 py-3 text-xs text-white/60">
+            You haven&apos;t sent any messages to this patient yet.
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-3 rounded-2xl border border-white/20 bg-[#111111] px-4 py-3">
         <input
           type="text"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
           placeholder="Send a message"
           className="flex-1 bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none"
         />
-        <button className="rounded-full bg-[#52c340] px-4 py-2 text-sm font-semibold text-black">
+        <button
+          onClick={handleSend}
+          className="rounded-full bg-[#52c340] px-4 py-2 text-sm font-semibold text-black"
+        >
           Send
         </button>
       </div>

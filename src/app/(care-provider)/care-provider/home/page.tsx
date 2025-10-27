@@ -7,35 +7,24 @@ import SimpleModal from "../../../../components/ui/simple-modal";
 import { useCareProviderProgress } from "../../../../hooks/use-care-provider-progress";
 import { getProgressBlockingUI } from "../../../../utils/care-provider-progress";
 import { useAuthSession } from "../../../../hooks/use-auth-session";
-
-interface ProviderAppointment {
-  id: string;
-  patient: string;
-  age: number;
-  type: string;
-  schedule: string;
-}
-
-const initialUpcoming: ProviderAppointment[] = [];
-
-const newRequests = [
-  {
-    id: "devon",
-    name: "Devon Lane",
-    age: 18,
-    summary: "Night fever, headache, vomiting...",
-    schedule: "Hospital visit • 25/03/3035 • 4:00pm",
-  },
-];
+import { useCareProviderExperience } from "../../../../hooks/use-care-provider-experience";
 
 export default function CareProviderHome() {
   const router = useRouter();
   const { progress, hydrated } = useCareProviderProgress();
   const { profile } = useAuthSession();
-  const [upcomingAppointments] =
-    useState<ProviderAppointment[]>(initialUpcoming);
+  const {
+    requests,
+    upcomingAppointments,
+    acceptRequest,
+    rejectRequest,
+    ensureConversation,
+    cancelAppointment,
+  } = useCareProviderExperience();
+
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
-  const [cancelTarget, setCancelTarget] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] =
+    useState<(typeof upcomingAppointments)[number] | null>(null);
 
   const blockingState = useMemo(
     () => getProgressBlockingUI(progress, router),
@@ -54,15 +43,31 @@ export default function CareProviderHome() {
     return blockingState;
   }
 
-  const handleMenuSelection = (action: string, id: string) => {
+  const handleMenuSelection = (
+    action: "cancel" | "details" | "chat",
+    appointmentId: string
+  ) => {
+    const appointment = upcomingAppointments.find((item) => item.id === appointmentId);
+    if (!appointment) return;
     setActiveMenu(null);
     if (action === "cancel") {
-      setCancelTarget(id);
+      setCancelTarget(appointment);
     } else if (action === "details") {
-      router.push(`/care-provider/appointments/${id}`);
+      router.push(`/care-provider/appointments/${appointmentId}`);
     } else if (action === "chat") {
-      router.push(`/care-provider/messages/${id}`);
+      ensureConversation({
+        id: appointment.conversationId,
+        name: appointment.patient,
+      });
+      router.push(`/care-provider/messages/${appointment.conversationId}`);
     }
+  };
+
+  const confirmCancel = () => {
+    if (cancelTarget) {
+      cancelAppointment(cancelTarget.id);
+    }
+    setCancelTarget(null);
   };
 
   return (
@@ -71,7 +76,7 @@ export default function CareProviderHome() {
         <div className="flex items-center gap-3">
           <Image
             src="/care-provider.png"
-            alt="Dr James"
+            alt="Care provider avatar"
             width={48}
             height={48}
             className="rounded-full object-cover"
@@ -96,24 +101,28 @@ export default function CareProviderHome() {
           {upcomingAppointments.length === 0 ? (
             <EmptyState label="No upcoming appointments" />
           ) : (
-            upcomingAppointments.map((appt) => (
+            upcomingAppointments.map((appointment) => (
               <div
-                key={appt.id}
+                key={appointment.id}
                 className="relative rounded-2xl border border-white/10 p-4"
               >
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="font-semibold text-white">
-                      {appt.patient} • {appt.age} years
+                      {appointment.patient} • {appointment.age} years
                     </p>
-                    <p className="text-sm text-[#52c340]">{appt.type}</p>
-                    <p className="text-xs text-white/60">{appt.schedule}</p>
+                    <p className="text-sm text-[#52c340]">
+                      {appointment.type}
+                    </p>
+                    <p className="text-xs text-white/60">
+                      {appointment.schedule}
+                    </p>
                   </div>
                   <div className="relative">
                     <button
                       onClick={() =>
                         setActiveMenu((prev) =>
-                          prev === appt.id ? null : appt.id
+                          prev === appointment.id ? null : appointment.id
                         )
                       }
                       className="rounded-full bg-white/10 px-2 py-1 text-lg text-white"
@@ -121,28 +130,21 @@ export default function CareProviderHome() {
                     >
                       ⋯
                     </button>
-                    {activeMenu === appt.id && (
+                    {activeMenu === appointment.id && (
                       <div className="absolute right-0 top-10 z-20 w-48 rounded-2xl border border-white/15 bg-[#050505] p-3 text-sm shadow-xl">
                         <button
-                          className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-white hover:bg-white/5"
-                          onClick={() =>
-                            handleMenuSelection("details", appt.id)
-                          }
-                        >
-                          View Details
-                        </button>
-                        <button className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-white/80 hover:bg-white/5">
-                          Reschedule
-                        </button>
-                        <button
                           className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-white/80 hover:bg-white/5"
-                          onClick={() => handleMenuSelection("chat", appt.id)}
+                          onClick={() =>
+                            handleMenuSelection("chat", appointment.id)
+                          }
                         >
                           Chat Patient
                         </button>
                         <button
                           className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-red-400 hover:bg-white/5"
-                          onClick={() => handleMenuSelection("cancel", appt.id)}
+                          onClick={() =>
+                            handleMenuSelection("cancel", appointment.id)
+                          }
                         >
                           Cancel Appointment
                         </button>
@@ -159,37 +161,55 @@ export default function CareProviderHome() {
       <section>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">New Requests</h2>
-          <button className="text-sm text-[#52c340]">View all</button>
+          <button
+            type="button"
+            onClick={() => router.push("/care-provider/appointments?tab=new")}
+            className="text-sm text-[#52c340]"
+          >
+            View all
+          </button>
         </div>
-        {newRequests.length === 0 ? (
+        {requests.length === 0 ? (
           <EmptyState label="No new appointments" />
         ) : (
-          newRequests.map((req) => (
+          requests.map((request) => (
             <div
-              key={req.id}
-              className="flex items-start justify-between rounded-2xl border border-white/10 p-4 text-sm"
+              key={request.id}
+              className="flex flex-col gap-3 rounded-2xl border border-white/10 p-4 text-sm"
             >
-              <div className="flex flex-col gap-1">
-                <div className="flex items-start">
-                  <div className="w-full">
-                    <p className="font-semibold text-white">
-                      {req.name} • {req.age} years
-                    </p>
-                    <p className="text-white/60">{req.summary}</p>
-                  </div>
-                  <button
-                    className="text-xs text-[#52c340] w-fit whitespace-nowrap cursor-pointer"
-                    onClick={() =>
-                      router.push(
-                        `/care-provider/appointments/requests/${req.id}`
-                      )
-                    }
-                  >
-                    View Details
-                  </button>
-                </div>
-
-                <p className="mt-1 text-[#52c340]">{req.schedule}</p>
+              <div>
+                <p className="font-semibold text-white">
+                  {request.name} • {request.age} years
+                </p>
+                <p className="text-white/60">{request.summary}</p>
+              </div>
+              <p className="text-[#52c340]">{request.schedule}</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="rounded-2xl border border-white/20 px-3 py-2 text-xs font-semibold text-white"
+                  onClick={() => rejectRequest(request.id)}
+                >
+                  Reject
+                </button>
+                <button
+                  type="button"
+                  className="rounded-2xl bg-[#52c340] px-3 py-2 text-xs font-semibold text-black"
+                  onClick={() => acceptRequest(request.id)}
+                >
+                  Accept
+                </button>
+                <button
+                  type="button"
+                  className="rounded-2xl px-3 py-2 text-xs font-semibold text-[#52c340]"
+                  onClick={() =>
+                    router.push(
+                      `/care-provider/appointments/requests/${request.id}`
+                    )
+                  }
+                >
+                  View Details
+                </button>
               </div>
             </div>
           ))
@@ -199,28 +219,27 @@ export default function CareProviderHome() {
       <SimpleModal
         open={Boolean(cancelTarget)}
         onClose={() => setCancelTarget(null)}
-        title="Are you sure?"
+        title="Cancel appointment?"
         subtitle={
           cancelTarget
-            ? `You will cancel the appointment with ${
-                upcomingAppointments.find((a) => a.id === cancelTarget)
-                  ?.patient ?? "this patient"
-              }.`
+            ? `You will cancel the appointment with ${cancelTarget.patient}.`
             : undefined
         }
       >
         <div className="mt-4 grid grid-cols-2 gap-3">
           <button
+            type="button"
             onClick={() => setCancelTarget(null)}
             className="rounded-2xl bg-white py-2 text-sm font-semibold text-black"
           >
-            No, Accept
+            Keep
           </button>
           <button
-            onClick={() => setCancelTarget(null)}
+            type="button"
+            onClick={confirmCancel}
             className="rounded-2xl bg-red-500 py-2 text-sm font-semibold text-white"
           >
-            Yes, Cancel
+            Cancel
           </button>
         </div>
       </SimpleModal>
