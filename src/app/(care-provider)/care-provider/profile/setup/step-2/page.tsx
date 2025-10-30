@@ -8,6 +8,7 @@ import { useAuthSession } from "../../../../../../hooks/use-auth-session";
 import { useCareProviderProgress } from "../../../../../../hooks/use-care-provider-progress";
 import { CareCategory, CareModule } from "../../../../../../types/care";
 import { createClient } from "../../../../../../utils/supabase/client";
+import { doctorSpecialties } from "../../../../../../data/doctor-directory";
 
 const serviceOptions = [
   "Clinic consultation",
@@ -118,9 +119,6 @@ export default function StepTwoPage() {
               <option value="mental" className="text-black">
                 Mental Health
               </option>
-              <option value="hospital" className="text-black">
-                Hospital
-              </option>
             </select>
           </div>
           <div className="rounded-2xl border border-[#0f4a4b] bg-[#073133] px-4 py-3 text-sm text-white">
@@ -155,12 +153,22 @@ export default function StepTwoPage() {
             value={country}
             onChange={setCountry}
           />
-          <InlineInput
-            placeholder="Specialization*"
-            icon={<MapPin size={16} />}
-            value={specialization}
-            onChange={setSpecialization}
-          />
+          <div className="rounded-2xl border border-[#0f4a4b] bg-[#073133] px-4 py-3 text-sm text-white">
+            <select
+              value={specialization}
+              onChange={(e) => setSpecialization(e.target.value)}
+              className="w-full bg-transparent text-white focus:outline-none"
+            >
+              <option value="" className="text-black">
+                Select Specialization*
+              </option>
+              {doctorSpecialties.map((specialty) => (
+                <option value={specialty} key={specialty} className="text-black">
+                  {specialty}
+                </option>
+              ))}
+            </select>
+          </div>
           <InlineInput
             placeholder="Home Service Charge*"
             icon={<DollarSign size={16} />}

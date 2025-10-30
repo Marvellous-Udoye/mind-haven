@@ -36,7 +36,27 @@ export default function MessageDetailPage() {
 
   const handleSend = () => {
     if (!draft.trim()) return;
-    sendMessage(conversation.id, draft.trim());
+    // For local conversations, we need to find the doctor info
+    const isLocalConversation = conversation.id.startsWith('local-');
+    let doctorInfo = null;
+
+    if (isLocalConversation) {
+      // Extract doctor ID from local conversation ID
+      const parts = conversation.id.split('-');
+      if (parts.length >= 4) {
+        const doctorId = parts[3];
+        // We would need to get doctor info from context, but for now we'll use the conversation info
+        doctorInfo = {
+          id: doctorId,
+          first_name: conversation.doctorName.split(' ')[0] || 'Doctor',
+          last_name: conversation.doctorName.split(' ').slice(1).join(' ') || '',
+          avatar_url: conversation.avatar,
+          role: "provider" as const,
+        };
+      }
+    }
+
+    sendMessage(conversation.id, draft.trim(), doctorInfo || undefined);
     setDraft("");
   };
 

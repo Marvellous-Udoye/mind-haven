@@ -154,7 +154,9 @@ function ProviderFlowContent() {
       router.push(`/care-seeker/messages/${conversationId}`);
     } catch (error) {
       console.error("Error creating conversation:", error);
-      router.push("/login");
+      // Create a local conversation for the user instead of redirecting
+      const localConversationId = `local-${user?.id}-${doctor.id}-${Date.now()}`;
+      router.push(`/care-seeker/messages/${localConversationId}`);
     }
   };
 
