@@ -6,8 +6,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
 import { doctorSpecialties } from "../../../../data/doctor-directory";
 import { useCareSeekerExperience } from "../../../../hooks/use-care-seeker-experience";
+import { useAuthSession } from "../../../../hooks/use-auth-session";
 import type { CareCategory, CareModule } from "../../../../types/care";
 import { UserProfile } from "../../../../types/user";
+import { createClient } from "@/src/utils/supabase/client";
 
 type BookingStep =
   | "care-type"
@@ -56,6 +58,7 @@ function ProviderFlowContent() {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [locationType, setLocationType] = useState<"home" | "clinic">("clinic");
   const { bookAppointment, providers } = useCareSeekerExperience();
+  const { user } = useAuthSession();
 
   const doctors = useMemo(
     () =>
@@ -83,8 +86,59 @@ function ProviderFlowContent() {
   };
 
   const handleChatNow = async (doctor: UserProfile) => {
-    // For now, just navigate to messages - conversation creation will be handled in messaging
-    router.push(`/care-seeker/messages/${doctor.id}`);
+    // Create conversation and navigate to messages
+    const supabase = createClient();
+    try {
+      // Check if conversation already exists between these two users
+      const { data: existingConv } = await supabase
+        .from("conversation_participants")
+        .select("conversation_id")
+        .eq("user_id", user?.id);
+
+      let conversationId = null;
+
+      if (existingConv) {
+        // Check if any of these conversations also has the doctor
+        for (const conv of existingConv) {
+          const { data: participants } = await supabase
+            .from("conversation_participants")
+            .select("user_id")
+            .eq("conversation_id", conv.conversation_id);
+
+          if (participants?.some((p: { user_id: string }) => p.user_id === doctor.id)) {
+            conversationId = conv.conversation_id;
+            break;
+          }
+        }
+      }
+
+      if (!conversationId) {
+        // Create new conversation
+        const { data: conversation, error: convError } = await supabase
+          .from("conversations")
+          .insert({})
+          .select()
+          .single();
+
+        if (convError) throw convError;
+
+        // Add participants - only add current user, let the other user be added when they respond
+        const { error: partError } = await supabase
+          .from("conversation_participants")
+          .insert([
+            { conversation_id: conversation.id, user_id: user?.id }
+          ]);
+
+        if (partError) throw partError;
+
+        conversationId = conversation.id;
+      }
+
+      router.push(`/care-seeker/messages/${conversationId}`);
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      router.push("/login");
+    }
   };
 
   const confirmAppointment = async () => {
@@ -110,7 +164,7 @@ function ProviderFlowContent() {
       setStep("success");
     } catch (error) {
       console.error("Error booking appointment:", error);
-      // Handle error - maybe show a toast or error message
+      alert("Failed to book appointment. Please try again.");
     }
   };
 
@@ -134,7 +188,7 @@ function ProviderFlowContent() {
 
       {step === "care-type" && (
         <CardShell
-          title="Welcome Campbell"
+          title="Welcome,"
           subtitle="What care would you like?"
           footerLabel="Next"
           onNext={handleCareTypeNext}
@@ -152,7 +206,7 @@ function ProviderFlowContent() {
 
       {step === "doctor-category" && (
         <CardShell
-          title="Welcome Campbell"
+          title="Welcome,"
           subtitle="What doctor would you like to see?"
           footerLabel="Next"
           onNext={() => setStep("top-doctors")}

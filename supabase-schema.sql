@@ -13,7 +13,7 @@ create table profiles (
   last_name text not null,
   avatar_url text,
   role text not null check (role in ('care_seeker', 'care_provider')),
-  phone text,
+  phone text, 
   dob date,
   gender text,
   module text,
@@ -129,13 +129,14 @@ create policy "Users can view conversations they are a part of." on conversation
     select conversation_id from conversation_participants where user_id = auth.uid()
   ));
 
+create policy "Users can create conversations." on conversations
+  for insert with check (auth.uid() is not null);
+
 create policy "Users can view participants of conversations they are in." on conversation_participants
-  for select using (
-    user_id = auth.uid() or
-    conversation_id in (
-      select conversation_id from conversation_participants where user_id = auth.uid()
-    )
-  );
+  for select using (user_id = auth.uid());
+
+create policy "Users can create conversation participants." on conversation_participants
+  for insert with check (user_id = auth.uid());
 
 create policy "Users can send messages in conversations they are a part of." on messages
   for insert with check (

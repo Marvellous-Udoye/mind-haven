@@ -150,6 +150,7 @@ export function CareSeekerProvider({ children }: { children: ReactNode }) {
           .select();
         if (error) {
           console.error("Error booking appointment:", error);
+          throw error; // Re-throw to handle in component
         } else if (data) {
           setAppointments((prev) => [...prev, data[0] as Appointment]);
         }

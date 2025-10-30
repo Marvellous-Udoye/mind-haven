@@ -50,7 +50,7 @@ function AppointmentDetailContent() {
 
         <div className="mt-6 space-y-4 text-white">
           <div>
-            <p className="text-sm text-white/60">Hi Campbell,</p>
+            <p className="text-sm text-white/60">Hi,</p>
             <p className="mt-1 text-sm">
               You {status === "completed" ? "have concluded" : "have an upcoming"} appointment with{" "}
               {appointment.doctor_name}. Here are the details:
