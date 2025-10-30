@@ -4,13 +4,10 @@ import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useState } from "react";
-import {
-  doctorDirectory,
-  DoctorProfile,
-  doctorSpecialties,
-} from "../../../../data/doctor-directory";
+import { doctorSpecialties } from "../../../../data/doctor-directory";
 import { useCareSeekerExperience } from "../../../../hooks/use-care-seeker-experience";
 import type { CareCategory, CareModule } from "../../../../types/care";
+import { UserProfile } from "../../../../types/user";
 
 type BookingStep =
   | "care-type"
@@ -52,24 +49,24 @@ function ProviderFlowContent() {
   const [careCategory, setCareCategory] =
     useState<CareCategory>("psychologist");
   const [specialty, setSpecialty] = useState("Any");
-  const [selectedDoctor, setSelectedDoctor] = useState<DoctorProfile | null>(
+  const [selectedDoctor, setSelectedDoctor] = useState<UserProfile | null>(
     null
   );
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [locationType, setLocationType] = useState<"home" | "clinic">("clinic");
-  const { bookAppointment } = useCareSeekerExperience();
+  const { bookAppointment, providers } = useCareSeekerExperience();
 
   const doctors = useMemo(
     () =>
-      doctorDirectory.filter(
+      providers.filter(
         (doctor) =>
           doctor.module === moduleParam &&
           doctor.category === careCategory &&
           (specialty === "Any" ||
-            doctor.specialty.toLowerCase() === specialty.toLowerCase())
+            (doctor.specialty?.toLowerCase() === specialty.toLowerCase()))
       ),
-    [moduleParam, careCategory, specialty]
+    [providers, moduleParam, careCategory, specialty]
   );
 
   const handleCareTypeNext = () => {
@@ -80,12 +77,12 @@ function ProviderFlowContent() {
     }
   };
 
-  const startBooking = (doctor: DoctorProfile) => {
+  const startBooking = (doctor: UserProfile) => {
     setSelectedDoctor(doctor);
     setStep("doctor-detail");
   };
 
-  const handleChatNow = async (doctor: DoctorProfile) => {
+  const handleChatNow = async (doctor: UserProfile) => {
     // For now, just navigate to messages - conversation creation will be handled in messaging
     router.push(`/care-seeker/messages/${doctor.id}`);
   };
@@ -99,18 +96,16 @@ function ProviderFlowContent() {
     const dateString = appointmentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
 
     try {
-      // For now, we'll use a placeholder provider_id since we don't have real provider user IDs
-      // In a real app, you'd look up the provider's user ID from the profiles table
       await bookAppointment({
-        provider_id: selectedDoctor.id, // This should be the actual provider's user ID from profiles
-        doctor_name: selectedDoctor.name,
-        specialty: selectedDoctor.specialty,
+        provider_id: selectedDoctor.id,
+        doctor_name: `${selectedDoctor.first_name} ${selectedDoctor.last_name}`,
+        specialty: selectedDoctor.specialty || "",
         module: moduleParam,
         appointment_date: dateString,
         appointment_time: selectedTime,
         location_type: locationType,
-        location: selectedDoctor.location,
-        status: "pending" as const, // Start as pending until provider accepts
+        location: selectedDoctor.location || "",
+        status: "upcoming" as const,
       });
       setStep("success");
     } catch (error) {
@@ -184,16 +179,16 @@ function ProviderFlowContent() {
                 className="flex w-full items-center gap-3 rounded-2xl bg-white/5 px-4 py-4 text-left"
               >
                 <Image
-                  src={doctor.avatar}
-                  alt={doctor.name}
+                  src={doctor.avatar_url || "/care-provider.png"}
+                  alt={`${doctor.first_name} ${doctor.last_name}`}
                   width={48}
                   height={48}
                   className="rounded-full object-cover"
                 />
                 <div>
-                  <p className="font-semibold">{doctor.name}</p>
+                  <p className="font-semibold">{`${doctor.first_name} ${doctor.last_name}`}</p>
                   <p className="text-xs text-white/50">
-                    Reviews: {doctor.reviews}
+                    Reviews: {doctor.reviews || 0}
                   </p>
                 </div>
               </button>
@@ -324,7 +319,7 @@ function ProviderFlowContent() {
             <h2 className="text-2xl font-semibold">Success</h2>
             <p className="mt-2 text-sm text-white/70">
               You have successfully booked an appointment with{" "}
-              {selectedDoctor?.name}. A reminder has been added to your upcoming
+              {selectedDoctor?.first_name} {selectedDoctor?.last_name}. A reminder has been added to your upcoming
               appointments.
             </p>
           </div>
@@ -419,7 +414,7 @@ function DoctorDetailCard({
   onBook,
   onChat,
 }: {
-  doctor: DoctorProfile;
+  doctor: UserProfile;
   onBook: () => void;
   onChat: () => void;
 }) {
@@ -427,14 +422,14 @@ function DoctorDetailCard({
     <div className="flex flex-1 flex-col ">
       <div className="flex items-center gap-4">
         <Image
-          src={doctor.avatar}
-          alt={doctor.name}
+          src={doctor.avatar_url || "/care-provider.png"}
+          alt={`${doctor.first_name} ${doctor.last_name}`}
           width={72}
           height={72}
           className="rounded-3xl object-cover"
         />
         <div>
-          <p className="text-lg font-semibold">{doctor.name}</p>
+          <p className="text-lg font-semibold">{`${doctor.first_name} ${doctor.last_name}`}</p>
           <p className="text-sm text-white/70">{doctor.role}</p>
         </div>
       </div>
@@ -442,11 +437,13 @@ function DoctorDetailCard({
       <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-black">
         <div className="rounded-2xl bg-white/90 px-4 py-3 text-center">
           <p className="text-xs text-black/60">Patients</p>
-          <p className="text-lg font-semibold">{doctor.patients}</p>
+          <p className="text-lg font-semibold">{doctor.patients || 0}</p>
         </div>
         <div className="rounded-2xl bg-white/90 px-4 py-3 text-center">
           <p className="text-xs text-black/60">Experience</p>
-          <p className="text-lg font-semibold">{doctor.experienceYears} yrs</p>
+          <p className="text-lg font-semibold">
+            {doctor.experience_years || 0} yrs
+          </p>
         </div>
       </div>
 
@@ -461,9 +458,9 @@ function DoctorDetailCard({
         </div>
         <div>
           <p className="text-white/50">Charges</p>
-          <p>Home Consultation {doctor.charges.home}</p>
-          <p>Online Consultation {doctor.charges.online}</p>
-          <p>Clinic Consultation {doctor.charges.clinic}</p>
+          <p>Home Consultation {doctor.charges?.home || "N/A"}</p>
+          <p>Online Consultation {doctor.charges?.online || "N/A"}</p>
+          <p>Clinic Consultation {doctor.charges?.clinic || "N/A"}</p>
         </div>
         <div>
           <p className="text-white/50">Time Availability</p>
@@ -495,7 +492,7 @@ function BookingStepCard({
   subtitle,
   children,
 }: {
-  doctor: DoctorProfile | null;
+  doctor: UserProfile | null;
   title: string;
   subtitle: string;
   children: React.ReactNode;
@@ -506,14 +503,14 @@ function BookingStepCard({
       {doctor && (
         <div className="mt-3 flex items-center gap-3">
           <Image
-            src={doctor.avatar}
-            alt={doctor.name}
+            src={doctor.avatar_url || "/care-provider.png"}
+            alt={`${doctor.first_name} ${doctor.last_name}`}
             width={56}
             height={56}
             className="rounded-2xl object-cover"
           />
           <div>
-            <p className="font-semibold">{doctor.name}</p>
+            <p className="font-semibold">{`${doctor.first_name} ${doctor.last_name}`}</p>
             <p className="text-xs text-white/60">{doctor.role}</p>
           </div>
         </div>

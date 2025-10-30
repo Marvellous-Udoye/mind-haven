@@ -12,6 +12,7 @@ import {
 import type { CareModule } from "../types/care";
 import { createClient } from "../utils/supabase/client";
 import { useAuthSession } from "./use-auth-session";
+import { UserProfile } from "../types/user";
 
 export interface Appointment {
   id: string;
@@ -41,6 +42,7 @@ export interface Message {
 interface CareSeekerContextValue {
   appointments: Appointment[];
   messages: Message[];
+  providers: UserProfile[];
   bookAppointment: (appointment: Omit<Appointment, "id" | "seeker_id">) => Promise<void>;
   sendMessage: (conversation_id: string, text: string) => Promise<void>;
 }
@@ -53,8 +55,23 @@ export function CareSeekerProvider({ children }: { children: ReactNode }) {
   const { user } = useAuthSession();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [providers, setProviders] = useState<UserProfile[]>([]);
 
   useEffect(() => {
+    const fetchProviders = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("role", "care_provider")
+        .not("module", "is", null)
+        .not("category", "is", null);
+      if (error) {
+        console.error("Error fetching providers:", error);
+      } else {
+        setProviders(data as UserProfile[]);
+      }
+    };
     const fetchAppointments = async () => {
       if (user) {
         const supabase = createClient();
@@ -120,6 +137,7 @@ export function CareSeekerProvider({ children }: { children: ReactNode }) {
 
     fetchAppointments();
     fetchMessages();
+    fetchProviders();
   }, [user]);
 
   const bookAppointment = useCallback(
@@ -177,10 +195,11 @@ export function CareSeekerProvider({ children }: { children: ReactNode }) {
     () => ({
       appointments,
       messages,
+      providers,
       bookAppointment,
       sendMessage,
     }),
-    [appointments, messages, bookAppointment, sendMessage]
+    [appointments, messages, providers, bookAppointment, sendMessage]
   );
 
   return (

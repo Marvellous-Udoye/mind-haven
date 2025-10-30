@@ -4,7 +4,10 @@ import { useState } from "react";
 import { ArrowLeft, DollarSign, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SimpleModal from "../../../../../../components/ui/simple-modal";
+import { useAuthSession } from "../../../../../../hooks/use-auth-session";
 import { useCareProviderProgress } from "../../../../../../hooks/use-care-provider-progress";
+import { CareCategory, CareModule } from "../../../../../../types/care";
+import { createClient } from "../../../../../../utils/supabase/client";
 
 const serviceOptions = [
   "Clinic consultation",
@@ -15,11 +18,14 @@ const serviceOptions = [
 export default function StepTwoPage() {
   const router = useRouter();
   const { setProgress } = useCareProviderProgress();
+  const { user } = useAuthSession();
 
   const [gender, setGender] = useState<"male" | "female" | null>(null);
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
+  const [module, setModule] = useState<CareModule>("mental");
+  const [category, setCategory] = useState<CareCategory>("psychologist");
   const [specialization, setSpecialization] = useState("");
   const [homeCharge, setHomeCharge] = useState("");
 
@@ -29,9 +35,33 @@ export default function StepTwoPage() {
   const [service, setService] = useState("");
   const [serviceCharge, setServiceCharge] = useState("");
 
-  const handleContinue = () => {
-    setProgress("documents");
-    router.push("/care-provider/profile/setup/step-3");
+  const handleContinue = async () => {
+    if (user) {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          gender,
+          module,
+          category,
+          specialty: specialization,
+          location: `${address}, ${city}, ${country}`,
+          charges: {
+            home: homeCharge,
+            online: service === "Online consultation" ? serviceCharge : "",
+            clinic: service === "Clinic consultation" ? serviceCharge : "",
+          },
+          availability: availableTime,
+        })
+        .eq("id", user.id);
+
+      if (error) {
+        console.error("Error updating profile:", error);
+      } else {
+        setProgress("documents");
+        router.push("/care-provider/profile/setup/step-3");
+      }
+    }
   };
 
   return (
@@ -79,6 +109,34 @@ export default function StepTwoPage() {
         </div>
 
         <div className="mt-6 space-y-4">
+          <div className="rounded-2xl border border-[#0f4a4b] bg-[#073133] px-4 py-3 text-sm text-white">
+            <select
+              value={module}
+              onChange={(e) => setModule(e.target.value as CareModule)}
+              className="w-full bg-transparent text-white focus:outline-none"
+            >
+              <option value="mental" className="text-black">
+                Mental Health
+              </option>
+              <option value="hospital" className="text-black">
+                Hospital
+              </option>
+            </select>
+          </div>
+          <div className="rounded-2xl border border-[#0f4a4b] bg-[#073133] px-4 py-3 text-sm text-white">
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value as CareCategory)}
+              className="w-full bg-transparent text-white focus:outline-none"
+            >
+              <option value="psychologist" className="text-black">
+                Psychologist
+              </option>
+              <option value="doctor" className="text-black">
+                Doctor
+              </option>
+            </select>
+          </div>
           <InlineInput
             placeholder="Address"
             icon={<MapPin size={16} />}

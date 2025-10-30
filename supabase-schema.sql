@@ -8,14 +8,20 @@ drop table if exists profiles cascade;
 -- Create a table for public profiles
 create table profiles (
   id uuid references auth.users on delete cascade not null primary key,
-  updated_at timestamp with time zone,
+  updated_at timestamp with time zone default now(),
   first_name text not null,
   last_name text not null,
   avatar_url text,
   role text not null check (role in ('care_seeker', 'care_provider')),
   phone text,
   dob date,
-  gender text
+  gender text,
+  module text,
+  category text,
+  specialty text,
+  location text,
+  charges jsonb,
+  availability text
 );
 
 -- Set up Row Level Security (RLS)
@@ -41,7 +47,16 @@ security definer set search_path = public
 as $$
 begin
   insert into public.profiles (id, first_name, last_name, role, avatar_url, phone, dob, gender)
-  values (new.id, new.raw_user_meta_data->>'first_name', new.raw_user_meta_data->>'last_name', new.raw_user_meta_data->>'role', new.raw_user_meta_data->>'avatar_url', new.raw_user_meta_data->>'phone', (new.raw_user_meta_data->>'dob')::date, new.raw_user_meta_data->>'gender');
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'first_name', ''),
+    coalesce(new.raw_user_meta_data->>'last_name', ''),
+    coalesce(new.raw_user_meta_data->>'role', 'care_provider'),
+    new.raw_user_meta_data->>'avatar_url',
+    new.raw_user_meta_data->>'phone',
+    (new.raw_user_meta_data->>'dob')::date,
+    new.raw_user_meta_data->>'gender'
+  );
   return new;
 end;
 $$;
@@ -115,9 +130,12 @@ create policy "Users can view conversations they are a part of." on conversation
   ));
 
 create policy "Users can view participants of conversations they are in." on conversation_participants
-  for select using (conversation_id in (
-    select id from conversations
-  ));
+  for select using (
+    user_id = auth.uid() or
+    conversation_id in (
+      select conversation_id from conversation_participants where user_id = auth.uid()
+    )
+  );
 
 create policy "Users can send messages in conversations they are a part of." on messages
   for insert with check (
