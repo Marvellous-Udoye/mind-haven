@@ -60,7 +60,7 @@ export default function ProviderAppointmentsPage() {
           <div className="flex items-start gap-3">
             <Image
               src="/care-seeker.png"
-              alt={appointment.patient}
+              alt={appointment.patient || "Care seeker"}
               width={48}
               height={48}
               className="rounded-full object-cover"
@@ -81,11 +81,11 @@ export default function ProviderAppointmentsPage() {
                   className="text-white/70"
                   onClick={() => {
                     ensureConversation({
-                      id: appointment.conversationId,
-                      name: appointment.patient,
+                      id: appointment.conversationId || "",
+                      name: appointment.patient || "Care seeker",
                     });
                     router.push(
-                      `/care-provider/messages/${appointment.conversationId}`
+                      `/care-provider/messages/${appointment.conversationId || ""}`
                     );
                   }}
                 >
@@ -116,7 +116,7 @@ export default function ProviderAppointmentsPage() {
           <div className="flex items-start gap-3">
             <Image
               src="/care-seeker.png"
-              alt={request.name}
+              alt={request.name || "Care seeker"}
               width={48}
               height={48}
               className="rounded-full object-cover"
@@ -194,12 +194,12 @@ export default function ProviderAppointmentsPage() {
         {detailTarget && (
           <div className="space-y-3 text-sm">
             <p className="text-white/70">
-              You have an upcoming appointment with {detailTarget.patient}.
+            You have an upcoming appointment with {detailTarget.patient || "Care seeker"}.
             </p>
             <div className="rounded-2xl border border-white/10 p-3">
-              <InfoRow label="Patient's name" value={detailTarget.patient} />
-              <InfoRow label="Session type" value={detailTarget.type} />
-              <InfoRow label="Schedule" value={detailTarget.schedule} />
+              <InfoRow label="Patient's name" value={detailTarget.patient || "Care seeker"} />
+              <InfoRow label="Session type" value={detailTarget.type || ""} />
+              <InfoRow label="Schedule" value={detailTarget.schedule || ""} />
               <InfoRow
                 label="Preferred location"
                 value={

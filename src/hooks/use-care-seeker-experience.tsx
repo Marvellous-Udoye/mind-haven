@@ -24,7 +24,7 @@ export interface Appointment {
   appointment_time: string;
   location_type: "home" | "clinic";
   location: string;
-  status: "upcoming" | "completed" | "cancelled";
+  status: "pending" | "upcoming" | "completed" | "cancelled" | "rejected";
 }
 
 export interface Message {
@@ -34,6 +34,8 @@ export interface Message {
   author: "user" | "doctor";
   text: string;
   at: string;
+  doctorName?: string;
+  avatar?: string;
 }
 
 interface CareSeekerContextValue {
@@ -73,7 +75,10 @@ export function CareSeekerProvider({ children }: { children: ReactNode }) {
         const supabase = createClient();
         const { data, error } = await supabase
           .from("messages")
-          .select("*")
+          .select(`
+            *,
+            sender:profiles!sender_id(first_name, last_name, avatar_url)
+          `)
           .in(
             "conversation_id",
             (
@@ -82,11 +87,33 @@ export function CareSeekerProvider({ children }: { children: ReactNode }) {
                 .select("conversation_id")
                 .eq("user_id", user.id)
             ).data?.map((c) => c.conversation_id) || []
-          );
+          )
+          .order("at", { ascending: true });
+
         if (error) {
           console.error("Error fetching messages:", error);
         } else {
-          setMessages(data as Message[]);
+          const formattedMessages = data?.map((msg: unknown) => {
+            const message = msg as {
+              id: string;
+              conversation_id: string;
+              sender_id: string;
+              author: "user" | "doctor";
+              text: string;
+              at: string;
+              sender?: {
+                first_name?: string;
+                last_name?: string;
+                avatar_url?: string;
+              };
+            };
+            return {
+              ...message,
+              doctorName: `${message.sender?.first_name || ""} ${message.sender?.last_name || ""}`.trim(),
+              avatar: message.sender?.avatar_url || "/care-provider.png",
+            };
+          }) || [];
+          setMessages(formattedMessages);
         }
       }
     };
@@ -127,11 +154,19 @@ export function CareSeekerProvider({ children }: { children: ReactNode }) {
               author: "user",
             },
           ])
-          .select();
+          .select(`
+            *,
+            sender:profiles!sender_id(first_name, last_name, avatar_url)
+          `);
         if (error) {
           console.error("Error sending message:", error);
         } else if (data) {
-          setMessages((prev) => [...prev, data[0] as Message]);
+          const formattedMessage = {
+            ...data[0],
+            doctorName: `${data[0].sender?.first_name || ""} ${data[0].sender?.last_name || ""}`.trim(),
+            avatar: data[0].sender?.avatar_url || "/care-provider.png",
+          };
+          setMessages((prev) => [...prev, formattedMessage as Message]);
         }
       }
     },

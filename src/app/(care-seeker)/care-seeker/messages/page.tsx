@@ -7,9 +7,43 @@ import { useCareSeekerExperience } from "../../../../hooks/use-care-seeker-exper
 export default function MessagesPage() {
   const router = useRouter();
   const { messages } = useCareSeekerExperience();
-  const ordered = [...messages].sort(
-    (a, b) =>
-      new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
+
+  // Group messages by conversation and get the latest message for each
+  interface ConversationPreview {
+    id: string;
+    conversation_id: string;
+    doctorName: string;
+    avatar: string;
+    lastMessageAt: string;
+    preview: string;
+    history: never[];
+  }
+
+  const conversations = messages.reduce((acc: ConversationPreview[], message) => {
+    const existing = acc.find(conv => conv.conversation_id === message.conversation_id);
+    if (!existing || new Date(message.at) > new Date(existing.lastMessageAt)) {
+      if (existing) {
+        Object.assign(existing, {
+          lastMessageAt: message.at,
+          preview: message.text,
+        });
+      } else {
+        acc.push({
+          id: message.conversation_id,
+          conversation_id: message.conversation_id,
+          doctorName: message.doctorName || "Doctor",
+          avatar: message.avatar || "/care-provider.png",
+          lastMessageAt: message.at,
+          preview: message.text,
+          history: [], // We'll populate this when opening the conversation
+        });
+      }
+    }
+    return acc;
+  }, []);
+
+  const ordered = conversations.sort(
+    (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
   );
 
   return (
@@ -42,7 +76,7 @@ export default function MessagesPage() {
                 </div>
               </div>
               <span className="text-xs font-semibold text-[#52c340]">
-                {new Date(message.lastUpdated).toLocaleTimeString([], {
+                {new Date(message.lastMessageAt).toLocaleTimeString([], {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}

@@ -24,9 +24,7 @@ export default function CareSeekerHome() {
   );
 
   const greetingName =
-    profile?.firstName?.trim() ||
-    profile?.lastName?.trim() ||
-    "there";
+    profile?.first_name?.trim() || profile?.last_name?.trim() || "there";
 
   return (
     <div className="flex flex-col gap-8 pb-8">
@@ -121,13 +119,13 @@ export default function CareSeekerHome() {
                 <div className="flex items-center gap-3">
                   <Image
                     src="/care-provider.png"
-                    alt={appointment.doctorName}
+                    alt={appointment.doctor_name}
                     width={48}
                     height={48}
                     className="rounded-full object-cover"
                   />
                   <div>
-                    <p className="font-semibold">{appointment.doctorName}</p>
+                    <p className="font-semibold">{appointment.doctor_name}</p>
                     <p className="text-sm text-white/60">
                       {appointment.specialty}
                     </p>
@@ -135,9 +133,11 @@ export default function CareSeekerHome() {
                 </div>
                 <div className="text-right text-sm font-semibold text-[#52c340]">
                   <p>
-                    {new Date(appointment.date).toLocaleDateString("en-GB")}
+                    {new Date(appointment.appointment_date).toLocaleDateString(
+                      "en-GB"
+                    )}
                   </p>
-                  <p>{appointment.time}</p>
+                  <p>{appointment.appointment_time}</p>
                 </div>
               </button>
             ))

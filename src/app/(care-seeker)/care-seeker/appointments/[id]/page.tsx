@@ -53,21 +53,21 @@ function AppointmentDetailContent() {
             <p className="text-sm text-white/60">Hi Campbell,</p>
             <p className="mt-1 text-sm">
               You {status === "completed" ? "have concluded" : "have an upcoming"} appointment with{" "}
-              {appointment.doctorName}. Here are the details:
+              {appointment.doctor_name}. Here are the details:
             </p>
           </div>
 
           <div className="space-y-3 rounded-2xl border border-white/10 p-4">
-            <InfoRow label="Doctor's name" value={appointment.doctorName} />
+            <InfoRow label="Doctor's name" value={appointment.doctor_name} />
             <InfoRow label="Specialty" value={appointment.specialty} />
             <InfoRow
               label="Date"
-              value={new Date(appointment.date).toLocaleDateString("en-GB")}
+              value={new Date(appointment.appointment_date).toLocaleDateString("en-GB")}
             />
-            <InfoRow label="Start Time" value={appointment.time} />
+            <InfoRow label="Start Time" value={appointment.appointment_time} />
             <InfoRow
               label="Consultation type"
-              value={appointment.locationType === "home" ? "Home Consultation" : "Clinic Consultation"}
+              value={appointment.location_type === "home" ? "Home Consultation" : "Clinic Consultation"}
             />
             <InfoRow label="Location" value={appointment.location} />
           </div>

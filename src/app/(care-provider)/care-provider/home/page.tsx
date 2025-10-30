@@ -56,10 +56,10 @@ export default function CareProviderHome() {
       router.push(`/care-provider/appointments/${appointmentId}`);
     } else if (action === "chat") {
       ensureConversation({
-        id: appointment.conversationId,
-        name: appointment.patient,
+        id: appointment.conversationId || appointment.id,
+        name: appointment.patient || appointment.seeker_name || "Patient",
       });
-      router.push(`/care-provider/messages/${appointment.conversationId}`);
+      router.push(`/care-provider/messages/${appointment.conversationId || appointment.id}`);
     }
   };
 
@@ -84,8 +84,7 @@ export default function CareProviderHome() {
           <div>
             <p className="text-sm text-[#52c340]">
               Hi{" "}
-              {profile?.firstName?.trim() ||
-                profile?.lastName?.trim() ||
+              {(profile?.first_name?.trim() || profile?.last_name?.trim() || "").trim() ||
                 "there"}
             </p>
             <p className="text-sm text-white/70">How are you today?</p>
@@ -109,13 +108,13 @@ export default function CareProviderHome() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="font-semibold text-white">
-                      {appointment.patient} • {appointment.age} years
+                      {appointment.patient || appointment.seeker_name} • {appointment.age || appointment.seeker_age} years
                     </p>
                     <p className="text-sm text-[#52c340]">
-                      {appointment.type}
+                      {appointment.type || appointment.module}
                     </p>
                     <p className="text-xs text-white/60">
-                      {appointment.schedule}
+                      {appointment.schedule || `${appointment.appointment_date} • ${appointment.appointment_time}`}
                     </p>
                   </div>
                   <div className="relative">
@@ -179,11 +178,11 @@ export default function CareProviderHome() {
             >
               <div>
                 <p className="font-semibold text-white">
-                  {request.name} • {request.age} years
+                  {request.name || request.seeker_name} • {request.age || request.seeker_age} years
                 </p>
-                <p className="text-white/60">{request.summary}</p>
+                <p className="text-white/60">{request.summary || request.seeker_summary}</p>
               </div>
-              <p className="text-[#52c340]">{request.schedule}</p>
+              <p className="text-[#52c340]">{request.schedule || `${request.appointment_date} • ${request.appointment_time}`}</p>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -222,7 +221,7 @@ export default function CareProviderHome() {
         title="Cancel appointment?"
         subtitle={
           cancelTarget
-            ? `You will cancel the appointment with ${cancelTarget.patient}.`
+            ? `You will cancel the appointment with ${cancelTarget.patient || cancelTarget.seeker_name}.`
             : undefined
         }
       >

@@ -17,9 +17,42 @@ export default function CareProviderMessagesPage() {
     [progress, router]
   );
 
-  const ordered = [...messages].sort(
-    (a, b) =>
-      new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
+  // Group messages by conversation and get the latest message for each
+  interface ConversationPreview {
+    id: string;
+    conversation_id: string;
+    patient: string;
+    avatar: string;
+    lastMessageAt: string;
+    preview: string;
+    history: never[];
+  }
+
+  const conversations = messages.reduce((acc: ConversationPreview[], message) => {
+    const existing = acc.find(conv => conv.conversation_id === message.conversation_id);
+    if (!existing || new Date(message.at) > new Date(existing.lastMessageAt)) {
+      if (existing) {
+        Object.assign(existing, {
+          lastMessageAt: message.at,
+          preview: message.text,
+        });
+      } else {
+        acc.push({
+          id: message.conversation_id,
+          conversation_id: message.conversation_id,
+          patient: message.seeker_name || "Patient",
+          avatar: message.seeker_avatar || "/care-seeker.png",
+          lastMessageAt: message.at,
+          preview: message.text,
+          history: [], // We'll populate this when opening the conversation
+        });
+      }
+    }
+    return acc;
+  }, []);
+
+  const ordered = conversations.sort(
+    (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
   );
 
   if (!hydrated) {
@@ -66,7 +99,7 @@ export default function CareProviderMessagesPage() {
                 </div>
               </div>
               <span className="text-xs font-semibold text-[#52c340]">
-                {new Date(conversation.lastUpdated).toLocaleTimeString([], {
+                {new Date(conversation.lastMessageAt).toLocaleTimeString([], {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}

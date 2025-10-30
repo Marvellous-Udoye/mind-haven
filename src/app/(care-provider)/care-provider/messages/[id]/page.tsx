@@ -28,7 +28,22 @@ function ProviderMessageDetailContent() {
   const { progress, hydrated } = useCareProviderProgress();
   const { messages, appendMessage } = useCareProviderExperience();
 
-  const conversation = messages.find((item) => item.id === params.id);
+  // Get all messages for this conversation
+  const conversationMessages = messages.filter((m) => m.conversation_id === params.id);
+  const latestMessage = conversationMessages[conversationMessages.length - 1];
+
+  const conversation = latestMessage ? {
+    id: params.id,
+    conversation_id: params.id,
+    patient: latestMessage.seeker_name || "Patient",
+    avatar: latestMessage.seeker_avatar || "/care-seeker.png",
+    history: conversationMessages.map(msg => ({
+      author: msg.author,
+      text: msg.text,
+      at: msg.at,
+    })),
+  } : null;
+
   const [draft, setDraft] = useState("");
 
   const blockingState = getProgressBlockingUI(progress, router);
@@ -66,7 +81,7 @@ function ProviderMessageDetailContent() {
         <div className="flex items-center gap-3">
           <Image
             src={conversation.avatar || "/care-seeker.png"}
-            alt={conversation.patient}
+            alt={conversation.patient || "Patient"}
             width={42}
             height={42}
             className="rounded-full object-cover"
@@ -79,7 +94,8 @@ function ProviderMessageDetailContent() {
 
       <div className="flex-1 space-y-4 overflow-y-auto rounded-3xl bg-[#111111] p-4">
         {conversation.history.map((message, idx) => {
-          const isProvider = message.author === "provider";
+          // In this app, provider-authored messages are stored with author === "doctor"
+          const isProvider = message.author === "doctor";
           return (
             <div key={idx} className={`flex ${isProvider ? "justify-end" : ""}`}>
               <p

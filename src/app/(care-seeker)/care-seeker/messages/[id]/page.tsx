@@ -9,8 +9,24 @@ import { useCareSeekerExperience } from "../../../../../hooks/use-care-seeker-ex
 export default function MessageDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
-  const { messages, appendMessage } = useCareSeekerExperience();
-  const conversation = messages.find((m) => m.id === params.id);
+  const { messages, sendMessage } = useCareSeekerExperience();
+
+  // Get all messages for this conversation
+  const conversationMessages = messages.filter((m) => m.conversation_id === params.id);
+  const latestMessage = conversationMessages[conversationMessages.length - 1];
+
+  const conversation = latestMessage ? {
+    id: params.id,
+    conversation_id: params.id,
+    doctorName: latestMessage.doctorName || "Doctor",
+    avatar: latestMessage.avatar || "/care-provider.png",
+    history: conversationMessages.map(msg => ({
+      author: msg.author,
+      text: msg.text,
+      at: msg.at,
+    })),
+  } : null;
+
   const [draft, setDraft] = useState("");
 
   if (!conversation) {
@@ -20,7 +36,7 @@ export default function MessageDetailPage() {
 
   const handleSend = () => {
     if (!draft.trim()) return;
-    appendMessage(conversation.id, draft.trim());
+    sendMessage(conversation.id, draft.trim());
     setDraft("");
   };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { CheckCircle, XCircle } from "lucide-react";
@@ -8,6 +8,16 @@ import MobileContainer from "../../../components/mobile-container";
 import { createClient } from "../../../utils/supabase/client";
 
 export default function EmailConfirmationPage() {
+  return (
+    <MobileContainer>
+      <Suspense fallback={<ConfirmFallback />}> 
+        <EmailConfirmationContent />
+      </Suspense>
+    </MobileContainer>
+  );
+}
+
+function EmailConfirmationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
@@ -54,52 +64,59 @@ export default function EmailConfirmationPage() {
   }, [searchParams, router]);
 
   return (
-    <MobileContainer>
-      <section className="flex min-h-screen flex-col items-center justify-center bg-[#0d0d0d] px-6 text-white">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center text-center"
-        >
-          {status === "loading" && (
-            <>
-              <div className="mb-6 h-16 w-16 animate-spin rounded-full border-4 border-[#52c340] border-t-transparent"></div>
-              <h1 className="mb-2 text-xl font-bold text-[#52c340]">
-                Verifying Email
-              </h1>
-              <p className="text-sm text-white/70">
-                Please wait while we verify your email address...
-              </p>
-            </>
-          )}
+    <section className="flex min-h-screen flex-col items-center justify-center bg-[#0d0d0d] px-6 text-white">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="flex flex-col items-center text-center"
+      >
+        {status === "loading" && (
+          <>
+            <div className="mb-6 h-16 w-16 animate-spin rounded-full border-4 border-[#52c340] border-t-transparent"></div>
+            <h1 className="mb-2 text-xl font-bold text-[#52c340]">
+              Verifying Email
+            </h1>
+            <p className="text-sm text-white/70">
+              Please wait while we verify your email address...
+            </p>
+          </>
+        )}
 
-          {status === "success" && (
-            <>
-              <CheckCircle className="mb-6 h-16 w-16 text-[#52c340]" />
-              <h1 className="mb-2 text-xl font-bold text-[#52c340]">
-                Email Verified!
-              </h1>
-              <p className="text-sm text-white/70">{message}</p>
-            </>
-          )}
+        {status === "success" && (
+          <>
+            <CheckCircle className="mb-6 h-16 w-16 text-[#52c340]" />
+            <h1 className="mb-2 text-xl font-bold text-[#52c340]">
+              Email Verified!
+            </h1>
+            <p className="text-sm text-white/70">{message}</p>
+          </>
+        )}
 
-          {status === "error" && (
-            <>
-              <XCircle className="mb-6 h-16 w-16 text-red-500" />
-              <h1 className="mb-2 text-xl font-bold text-red-500">
-                Verification Failed
-              </h1>
-              <p className="mb-4 text-sm text-white/70">{message}</p>
-              <button
-                onClick={() => router.push("/")}
-                className="rounded-2xl bg-[#52c340] px-6 py-2 text-sm font-semibold text-black"
-              >
-                Go Back
-              </button>
-            </>
-          )}
-        </motion.div>
-      </section>
-    </MobileContainer>
+        {status === "error" && (
+          <>
+            <XCircle className="mb-6 h-16 w-16 text-red-500" />
+            <h1 className="mb-2 text-xl font-bold text-red-500">
+              Verification Failed
+            </h1>
+            <p className="mb-4 text-sm text-white/70">{message}</p>
+            <button
+              onClick={() => router.push("/")}
+              className="rounded-2xl bg-[#52c340] px-6 py-2 text-sm font-semibold text-black"
+            >
+              Go Back
+            </button>
+          </>
+        )}
+      </motion.div>
+    </section>
+  );
+}
+
+function ConfirmFallback() {
+  return (
+    <section className="flex min-h-screen flex-col items-center justify-center bg-[#0d0d0d] px-6 text-white">
+      <div className="mb-6 h-16 w-16 animate-spin rounded-full border-4 border-[#52c340] border-t-transparent"></div>
+      <p className="text-sm text-white/70">Preparing confirmation...</p>
+    </section>
   );
 }

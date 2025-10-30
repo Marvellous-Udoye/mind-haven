@@ -58,7 +58,7 @@ function ProviderFlowContent() {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [locationType, setLocationType] = useState<"home" | "clinic">("clinic");
-  const { upsertAppointment, ensureConversation } = useCareSeekerExperience();
+  const { bookAppointment } = useCareSeekerExperience();
 
   const doctors = useMemo(
     () =>
@@ -85,29 +85,38 @@ function ProviderFlowContent() {
     setStep("doctor-detail");
   };
 
-  const handleChatNow = (doctor: DoctorProfile) => {
-    ensureConversation(doctor.id, doctor.name, doctor.avatar);
+  const handleChatNow = async (doctor: DoctorProfile) => {
+    // For now, just navigate to messages - conversation creation will be handled in messaging
     router.push(`/care-seeker/messages/${doctor.id}`);
   };
 
-  const confirmAppointment = () => {
+  const confirmAppointment = async () => {
     if (!selectedDoctor || !selectedDay || !selectedTime) return;
+
+    // Create appointment date
     const appointmentDate = new Date();
     appointmentDate.setDate(selectedDay);
-    const id = `appt-${Date.now()}`;
-    upsertAppointment({
-      id,
-      doctorId: selectedDoctor.id,
-      doctorName: selectedDoctor.name,
-      specialty: selectedDoctor.specialty,
-      module: moduleParam,
-      date: appointmentDate.toISOString(),
-      time: selectedTime,
-      locationType,
-      location: selectedDoctor.location,
-      status: "upcoming",
-    });
-    setStep("success");
+    const dateString = appointmentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+
+    try {
+      // For now, we'll use a placeholder provider_id since we don't have real provider user IDs
+      // In a real app, you'd look up the provider's user ID from the profiles table
+      await bookAppointment({
+        provider_id: selectedDoctor.id, // This should be the actual provider's user ID from profiles
+        doctor_name: selectedDoctor.name,
+        specialty: selectedDoctor.specialty,
+        module: moduleParam,
+        appointment_date: dateString,
+        appointment_time: selectedTime,
+        location_type: locationType,
+        location: selectedDoctor.location,
+        status: "pending" as const, // Start as pending until provider accepts
+      });
+      setStep("success");
+    } catch (error) {
+      console.error("Error booking appointment:", error);
+      // Handle error - maybe show a toast or error message
+    }
   };
 
   const resetToHome = () => {

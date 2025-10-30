@@ -62,8 +62,8 @@ function NewRequestDetailContent() {
   };
 
   const handleChat = () => {
-    ensureConversation({ id: request.id, name: request.name });
-    router.push(`/care-provider/messages/${request.id}`);
+    ensureConversation({ id: request.id || "", name: request.name || "Care seeker" });
+    router.push(`/care-provider/messages/${request.id || ""}`);
   };
 
   return (
@@ -98,8 +98,8 @@ function NewRequestDetailContent() {
         <div className="mt-6">
           <p className="text-sm text-white/60">Appointment Details</p>
           <div className="mt-3 rounded-2xl border border-white/10 p-4 text-sm space-y-3">
-            <Info label="Session type" value={request.type} />
-            <Info label="Schedule" value={request.schedule} />
+            <Info label="Session type" value={request.type || ""} />
+            <Info label="Schedule" value={request.schedule || ""} />
             <div>
               <p className="text-white/60">Summary</p>
               <p className="text-white">{request.summary}</p>

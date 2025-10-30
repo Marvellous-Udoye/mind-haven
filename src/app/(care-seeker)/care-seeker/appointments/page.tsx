@@ -50,21 +50,21 @@ export default function AppointmentsPage() {
               <div className="flex items-center gap-3">
                 <Image
                   src="/care-provider.png"
-                  alt={appointment.doctorName}
+                  alt={appointment.doctor_name || "Doctor's name"}
                   width={48}
                   height={48}
                   className="rounded-full object-cover"
                 />
                 <div>
-                  <p className="font-semibold">{appointment.doctorName}</p>
+                  <p className="font-semibold">{appointment.doctor_name}</p>
                   <p className="text-xs text-white/60">{appointment.specialty}</p>
                 </div>
               </div>
               <div className="text-right text-xs font-semibold text-[#52c340]">
                 <p>
-                  {new Date(appointment.date).toLocaleDateString("en-GB")}
+                  {new Date(appointment.appointment_date).toLocaleDateString("en-GB")}
                 </p>
-                <p>{appointment.time}</p>
+                <p>{appointment.appointment_time}</p>
               </div>
             </button>
           ))}

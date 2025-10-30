@@ -12,19 +12,13 @@ export type CareProviderProgress =
 const STORAGE_KEY = "care-provider-progress";
 
 export function useCareProviderProgress() {
-  const [progress, setProgress] = useState<CareProviderProgress>("basic");
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = window.localStorage.getItem(
-      STORAGE_KEY
-    ) as CareProviderProgress | null;
-    if (stored) {
-      setProgress(stored);
-    }
-    setHydrated(true);
-  }, []);
+  const [progress, setProgress] = useState<CareProviderProgress>(() => {
+    if (typeof window === "undefined") return "basic";
+    const stored = window.localStorage.getItem(STORAGE_KEY) as CareProviderProgress | null;
+    return stored ?? "basic";
+  });
+  // derive hydration without setting state inside an effect
+  const [hydrated] = useState(() => typeof window !== "undefined");
 
   const updateProgress = (next: CareProviderProgress) => {
     setProgress(next);
