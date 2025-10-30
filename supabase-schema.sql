@@ -13,7 +13,7 @@ create table profiles (
   last_name text not null,
   avatar_url text,
   role text not null check (role in ('care_seeker', 'care_provider')),
-  phone text, 
+  phone text,
   dob date,
   gender text,
   module text,
@@ -21,7 +21,12 @@ create table profiles (
   specialty text,
   location text,
   charges jsonb,
-  availability text
+  availability text,
+  setup_progress text,
+  experience_years integer,
+  patients integer default 0,
+  about text,
+  reviews integer default 0
 );
 
 -- Set up Row Level Security (RLS)
@@ -130,7 +135,7 @@ create policy "Users can view conversations they are a part of." on conversation
   ));
 
 create policy "Users can create conversations." on conversations
-  for insert with check (auth.uid() is not null);
+  for insert with check (true);
 
 create policy "Users can view participants of conversations they are in." on conversation_participants
   for select using (user_id = auth.uid());

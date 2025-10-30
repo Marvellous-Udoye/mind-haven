@@ -132,6 +132,23 @@ function ProviderFlowContent() {
         if (partError) throw partError;
 
         conversationId = conversation.id;
+
+        // Send a dummy welcome message from the doctor
+        const { error: msgError } = await supabase
+          .from("messages")
+          .insert([
+            {
+              conversation_id: conversation.id,
+              sender_id: doctor.id,
+              author: "doctor",
+              text: `Hello! I'm ${doctor.first_name} ${doctor.last_name}. How can I help you today?`,
+            },
+          ]);
+
+        if (msgError) {
+          console.error("Error sending welcome message:", msgError);
+          // Don't throw here, conversation is still created
+        }
       }
 
       router.push(`/care-seeker/messages/${conversationId}`);
@@ -242,7 +259,10 @@ function ProviderFlowContent() {
                 <div>
                   <p className="font-semibold">{`${doctor.first_name} ${doctor.last_name}`}</p>
                   <p className="text-xs text-white/50">
-                    Reviews: {doctor.reviews || 0}
+                    {doctor.specialty || "Specialist"} • {doctor.experience_years ? `${doctor.experience_years} yrs exp` : ""}
+                  </p>
+                  <p className="text-xs text-white/40">
+                    {doctor.location || ""}
                   </p>
                 </div>
               </button>
