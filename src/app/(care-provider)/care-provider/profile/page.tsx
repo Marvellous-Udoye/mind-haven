@@ -20,28 +20,28 @@ const menuItems = [
 export default function CareProviderProfilePage() {
   const router = useRouter();
   const [showLogout, setShowLogout] = useState(false);
-  const { profile, hydrated, selectIdentity } = useAuthSession();
+  const { profile, hydrated, signOut, user } = useAuthSession();
   const { resetProgress } = useCareProviderProgress();
 
   const fullName = useMemo(() => {
     if (!profile) return "Guest Provider";
-    const combined = `${profile.firstName} ${profile.lastName}`.trim();
+    const combined = `${profile.first_name} ${profile.last_name}`.trim();
     return combined || "Guest Provider";
   }, [profile]);
 
   const initials = useMemo(() => {
     if (!profile) return "MH";
-    const first = profile.firstName?.[0] ?? "";
-    const last = profile.lastName?.[0] ?? "";
+    const first = profile.first_name?.[0] ?? "";
+    const last = profile.last_name?.[0] ?? "";
     const combined = `${first}${last}`.trim();
     if (combined.length === 0) {
-      return (profile.firstName || "MH").slice(0, 2).toUpperCase();
+      return (profile.first_name || "MH").slice(0, 2).toUpperCase();
     }
     return combined.toUpperCase();
   }, [profile]);
 
   const phoneDisplay = profile?.phone || "Not provided";
-  const emailDisplay = profile?.email || "Not provided";
+  const emailDisplay = user?.email || "Not provided";
   const detailCards = useMemo(
     () => [
       { label: "D.O.B", value: formatDate(profile?.dob) },
@@ -51,7 +51,7 @@ export default function CareProviderProfilePage() {
   );
 
   const handleLogout = () => {
-    selectIdentity(null);
+    signOut();
     resetProgress();
     setShowLogout(false);
     router.push("/login?identity=provider");
@@ -66,7 +66,7 @@ export default function CareProviderProfilePage() {
           <div className="relative">
             <div className="size-18">
               <Image
-                src="/logo.svg"
+                src={profile?.avatar_url || "/logo.svg"}
                 alt="Profile avatar"
                 width={72}
                 height={72}

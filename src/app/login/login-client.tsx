@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 import MobileContainer from "../../components/mobile-container";
-import { useAuthSession } from "../../hooks/use-auth-session";
+import { createClient } from "../../utils/supabase/client";
 
 type LoginMethod = "email" | "mobile";
 
@@ -27,12 +27,12 @@ export default function LoginClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const identityParam = searchParams.get("identity") ?? "";
-  const { selectIdentity } = useAuthSession();
-
   const [method, setMethod] = useState<LoginMethod>("email");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const identityLabel = useMemo(
     () => identityCopy[identityParam] ?? null,
@@ -42,14 +42,33 @@ export default function LoginClient() {
   const identityValue =
     identityParam === "provider" ? "provider" : "seeker";
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    // TODO: integrate with auth flow
-    console.log("Login", { method, identifier, password });
-    selectIdentity(identityValue);
-    router.push(
-      identityValue === "provider" ? "/care-provider/home" : "/care-seeker/home"
-    );
+    setLoading(true);
+    setError("");
+
+    if (method !== "email") {
+      setError("Only email login is supported at this time.");
+      setLoading(false);
+      return;
+    }
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email: identifier,
+      password,
+    });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      router.push(
+        identityValue === "provider"
+          ? "/care-provider/home"
+          : "/care-seeker/home"
+      );
+    }
+    setLoading(false);
   };
 
   const IdentifierIcon = method === "email" ? Mail : Phone;
@@ -168,17 +187,21 @@ export default function LoginClient() {
 
           <button
             type="submit"
-            disabled={!canSubmit}
+            disabled={!canSubmit || loading}
             className={[
               "mt-2 h-12 rounded-2xl text-base font-semibold transition",
-              canSubmit
+              canSubmit && !loading
                 ? "bg-white text-black"
                 : "bg-white/30 text-black/50",
             ].join(" ")}
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
         </motion.form>
+
+        {error && (
+          <p className="mt-4 text-center text-sm text-red-500">{error}</p>
+        )}
 
         <div className="mx-auto mt-4 flex w-full max-w-sm items-center justify-end">
           <button

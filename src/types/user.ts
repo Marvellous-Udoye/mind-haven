@@ -1,14 +1,15 @@
 export type UserIdentity = "seeker" | "provider";
 
 export interface UserProfile {
-  identity: UserIdentity;
-  firstName: string;
-  lastName: string;
-  email: string;
+  id: string;
+  first_name: string;
+  last_name: string;
+  avatar_url: string;
+  role: UserIdentity;
+  updated_at: string;
   phone: string;
   dob: string;
   gender: string;
-  createdAt: string;
 }
 
 export type StoredUserProfiles = Partial<Record<UserIdentity, UserProfile>>;

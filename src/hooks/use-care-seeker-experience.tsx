@@ -10,162 +10,142 @@ import {
   type ReactNode,
 } from "react";
 import type { CareModule } from "../types/care";
+import { createClient } from "../utils/supabase/client";
+import { useAuthSession } from "./use-auth-session";
 
 export interface Appointment {
   id: string;
-  doctorId: string;
-  doctorName: string;
+  provider_id: string;
+  seeker_id: string;
+  doctor_name: string;
   specialty: string;
   module: CareModule;
-  date: string;
-  time: string;
-  locationType: "home" | "clinic";
+  appointment_date: string;
+  appointment_time: string;
+  location_type: "home" | "clinic";
   location: string;
-  status: "upcoming" | "completed";
+  status: "upcoming" | "completed" | "cancelled";
 }
 
 export interface Message {
   id: string;
-  doctorName: string;
-  avatar: string;
-  lastUpdated: string;
-  preview: string;
-  history: Array<{ author: "user" | "doctor"; text: string; at: string }>;
+  conversation_id: string;
+  sender_id: string;
+  author: "user" | "doctor";
+  text: string;
+  at: string;
 }
 
 interface CareSeekerContextValue {
   appointments: Appointment[];
   messages: Message[];
-  upsertAppointment: (appointment: Appointment) => void;
-  ensureConversation: (
-    doctorId: string,
-    doctorName: string,
-    avatar: string
-  ) => void;
-  appendMessage: (doctorId: string, text: string) => void;
+  bookAppointment: (appointment: Omit<Appointment, "id" | "seeker_id">) => Promise<void>;
+  sendMessage: (conversation_id: string, text: string) => Promise<void>;
 }
-
-const STORAGE_KEY = "care-seeker-experience";
 
 const CareSeekerContext = createContext<CareSeekerContextValue | undefined>(
   undefined
 );
 
-const initialState: Pick<CareSeekerContextValue, "appointments" | "messages"> = {
-  appointments: [],
-  messages: [],
-};
-
 export function CareSeekerProvider({ children }: { children: ReactNode }) {
-  const [appointments, setAppointments] = useState<Appointment[]>(
-    initialState.appointments
-  );
-  const [messages, setMessages] = useState<Message[]>(initialState.messages);
-  const [hydrated, setHydrated] = useState(false);
+  const { user } = useAuthSession();
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed?.appointments)) {
-          setAppointments(parsed.appointments);
+    const fetchAppointments = async () => {
+      if (user) {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from("appointments")
+          .select("*")
+          .eq("seeker_id", user.id);
+        if (error) {
+          console.error("Error fetching appointments:", error);
+        } else {
+          setAppointments(data as Appointment[]);
         }
-        if (Array.isArray(parsed?.messages)) {
-          setMessages(parsed.messages);
+      }
+    };
+
+    const fetchMessages = async () => {
+      if (user) {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from("messages")
+          .select("*")
+          .in(
+            "conversation_id",
+            (
+              await supabase
+                .from("conversation_participants")
+                .select("conversation_id")
+                .eq("user_id", user.id)
+            ).data?.map((c) => c.conversation_id) || []
+          );
+        if (error) {
+          console.error("Error fetching messages:", error);
+        } else {
+          setMessages(data as Message[]);
         }
-      } catch {
-        // ignore parse errors
       }
-    }
-    setHydrated(true);
-  }, []);
+    };
 
-  useEffect(() => {
-    if (!hydrated || typeof window === "undefined") return;
-    const payload = JSON.stringify({ appointments, messages });
-    window.localStorage.setItem(STORAGE_KEY, payload);
-  }, [appointments, messages, hydrated]);
+    fetchAppointments();
+    fetchMessages();
+  }, [user]);
 
-  const upsertAppointment = useCallback((appointment: Appointment) => {
-    setAppointments((prev) => {
-      const existingIndex = prev.findIndex((a) => a.id === appointment.id);
-      if (existingIndex > -1) {
-        const clone = [...prev];
-        clone[existingIndex] = appointment;
-        return clone;
+  const bookAppointment = useCallback(
+    async (appointment: Omit<Appointment, "id" | "seeker_id">) => {
+      if (user) {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from("appointments")
+          .insert([{ ...appointment, seeker_id: user.id }])
+          .select();
+        if (error) {
+          console.error("Error booking appointment:", error);
+        } else if (data) {
+          setAppointments((prev) => [...prev, data[0] as Appointment]);
+        }
       }
-      return [appointment, ...prev];
-    });
-  }, []);
-
-  const ensureConversation = useCallback(
-    (doctorId: string, doctorName: string, avatar: string) => {
-      setMessages((prev) => {
-        const exists = prev.find((m) => m.id === doctorId);
-        if (exists) return prev;
-        const now = new Date().toISOString();
-        return [
-          {
-            id: doctorId,
-            doctorName,
-            avatar,
-            lastUpdated: now,
-            preview: "Say hello to start the conversation",
-            history: [],
-          },
-          ...prev,
-        ];
-      });
     },
-    []
+    [user]
   );
 
-  const appendMessage = useCallback((doctorId: string, text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-
-    setMessages((prev) => {
-      const conversation = prev.find((m) => m.id === doctorId);
-      if (!conversation) {
-        return prev;
+  const sendMessage = useCallback(
+    async (conversation_id: string, text: string) => {
+      if (user) {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from("messages")
+          .insert([
+            {
+              conversation_id,
+              text,
+              sender_id: user.id,
+              author: "user",
+            },
+          ])
+          .select();
+        if (error) {
+          console.error("Error sending message:", error);
+        } else if (data) {
+          setMessages((prev) => [...prev, data[0] as Message]);
+        }
       }
-      const now = new Date();
-      const userEntry = {
-        author: "user" as const,
-        text: trimmed,
-        at: now.toISOString(),
-      };
-      const replyText = `Hi, I am ${conversation.doctorName}, how may I help you?`;
-      const replyEntry = {
-        author: "doctor" as const,
-        text: replyText,
-        at: new Date(now.getTime() + 400).toISOString(),
-      };
-
-      return prev.map((message) => {
-        if (message.id !== doctorId) return message;
-        const history = [...message.history, userEntry, replyEntry];
-        return {
-          ...message,
-          history,
-          lastUpdated: replyEntry.at,
-          preview: replyText,
-        };
-      });
-    });
-  }, []);
+    },
+    [user]
+  );
 
   const value = useMemo(
     () => ({
       appointments,
       messages,
-      upsertAppointment,
-      ensureConversation,
-      appendMessage,
+      bookAppointment,
+      sendMessage,
     }),
-    [appointments, messages, upsertAppointment, ensureConversation, appendMessage]
+    [appointments, messages, bookAppointment, sendMessage]
   );
 
   return (

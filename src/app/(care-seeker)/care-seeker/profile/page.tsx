@@ -9,21 +9,21 @@ import { useAuthSession } from "../../../../hooks/use-auth-session";
 export default function ProfilePage() {
   const router = useRouter();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const { profile, hydrated, selectIdentity } = useAuthSession();
+  const { profile, hydrated, signOut, user } = useAuthSession();
 
   const fullName = useMemo(() => {
     if (!profile) return "Guest User";
-    const combined = `${profile.firstName} ${profile.lastName}`.trim();
+    const combined = `${profile.first_name} ${profile.last_name}`.trim();
     return combined || "Guest User";
   }, [profile]);
 
   const initials = useMemo(() => {
     if (!profile) return "MH";
-    const first = profile.firstName?.[0] ?? "";
-    const last = profile.lastName?.[0] ?? "";
+    const first = profile.first_name?.[0] ?? "";
+    const last = profile.last_name?.[0] ?? "";
     const combined = `${first}${last}`.trim();
     if (combined.length === 0) {
-      return (profile.firstName || "MH").slice(0, 2).toUpperCase();
+      return (profile.first_name || "MH").slice(0, 2).toUpperCase();
     }
     return combined.toUpperCase();
   }, [profile]);
@@ -31,16 +31,16 @@ export default function ProfilePage() {
   const profileFields = useMemo(
     () => [
       { label: "Name", value: fullName },
-      { label: "Email Address", value: profile?.email || "Not provided" },
+      { label: "Email Address", value: user?.email || "Not provided" },
       { label: "Phone Number", value: profile?.phone || "Not provided" },
       { label: "D.O.B", value: formatDate(profile?.dob) },
       { label: "Gender", value: formatCapitalized(profile?.gender) },
     ],
-    [profile, fullName]
+    [profile, fullName, user]
   );
 
   const handleLogout = () => {
-    selectIdentity(null);
+    signOut();
     setShowLogoutConfirm(false);
     router.push("/login?identity=seeker");
   };
@@ -53,7 +53,7 @@ export default function ProfilePage() {
         <div className="flex items-center gap-4">
           <div className="relative">
             <Image
-              src="/logo.svg"
+              src={profile?.avatar_url || "/logo.svg"}
               alt="Profile avatar"
               width={72}
               height={72}
@@ -68,7 +68,7 @@ export default function ProfilePage() {
               {hydrated ? fullName : "Loading..."}
             </p>
             <p className="text-sm text-white/60">
-              {profile?.identity === "provider" ? "Care Provider" : "Care Seeker"}
+              {profile?.role === "provider" ? "Care Provider" : "Care Seeker"}
             </p>
           </div>
         </div>

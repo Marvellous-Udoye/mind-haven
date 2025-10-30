@@ -15,7 +15,7 @@ import {
   User,
 } from "lucide-react";
 import MobileContainer from "../../../components/mobile-container";
-import { useAuthSession } from "../../../hooks/use-auth-session";
+import { createClient } from "../../../utils/supabase/client";
 import type { UserIdentity } from "../../../types/user";
 
 function InputWrapper({
@@ -60,10 +60,12 @@ export default function RegistrationDetailsClient() {
   const searchParams = useSearchParams();
   const identity: UserIdentity =
     searchParams.get("identity") === "provider" ? "provider" : "seeker";
-  const { saveProfile } = useAuthSession();
   const [formData, setFormData] = useState<FormState>(initialState);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -74,27 +76,39 @@ export default function RegistrationDetailsClient() {
     }));
   };
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    const trimmedFirstName = formData.firstName.trim();
-    const trimmedLastName = formData.lastName.trim();
-    const trimmedEmail = formData.email.trim().toLowerCase();
-    const trimmedPhone = formData.phone.trim();
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setMessage("");
 
-    saveProfile({
-      identity,
-      firstName: trimmedFirstName || formData.firstName,
-      lastName: trimmedLastName || formData.lastName,
-      email: trimmedEmail || formData.email,
-      phone: trimmedPhone || formData.phone,
-      dob: formData.dob,
-      gender: formData.gender,
-      createdAt: new Date().toISOString(),
+    const supabase = createClient();
+    const { error } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        data: {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          role: identity === "provider" ? "care_provider" : "care_seeker",
+          avatar_url: null,
+          phone: formData.phone,
+          dob: formData.dob,
+          gender: formData.gender,
+        },
+      },
     });
 
-    router.push(
-      identity === "provider" ? "/care-provider/home" : "/care-seeker/home"
-    );
+    if (error) {
+      setError(error.message);
+    } else {
+      setMessage("Please check your email to verify your account.");
+    }
+    setLoading(false);
   };
 
   return (
@@ -283,11 +297,19 @@ export default function RegistrationDetailsClient() {
 
           <button
             type="submit"
-            className="mt-2 h-12 rounded-2xl bg-white text-base font-semibold text-black"
+            className="mt-2 h-12 rounded-2xl bg-white text-base font-semibold text-black disabled:opacity-50"
+            disabled={loading}
           >
-            Sign Up
+            {loading ? "Signing up..." : "Sign Up"}
           </button>
         </motion.form>
+
+        {error && (
+          <p className="mt-4 text-center text-sm text-red-500">{error}</p>
+        )}
+        {message && (
+          <p className="mt-4 text-center text-sm text-green-500">{message}</p>
+        )}
 
         <p className="mt-4 text-center text-xs text-white/70">
           By clicking signup you are agreeing to the{" "}

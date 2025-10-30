@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import SplashScreen from '../components/splash-screen';
 import IdentitySelection from '../components/identity-selection';
 import MobileContainer from '../components/mobile-container';
+import { useAuthSession } from '../hooks/use-auth-session';
 
 type Screen = 'splash' | 'identity';
 type Identity = 'seeker' | 'provider';
@@ -13,15 +14,27 @@ type Identity = 'seeker' | 'provider';
 export default function OnboardingFlow() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('splash');
   const router = useRouter();
+  const { user, profile, hydrated } = useAuthSession();
 
   useEffect(() => {
-    // Show splash screen for 3 seconds
+    if (!hydrated) return;
+
+    // If user is authenticated and has a profile, redirect to their dashboard
+    if (user && profile) {
+      const dashboardPath = profile.role === 'provider'
+        ? '/care-provider/home'
+        : '/care-seeker/home';
+      router.push(dashboardPath);
+      return;
+    }
+
+    // Show splash screen for 3 seconds, then identity selection
     const timer = setTimeout(() => {
       setCurrentScreen('identity');
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [user, profile, hydrated, router]);
 
   const handleLogin = (identity: Identity) => {
     router.push(`/login?identity=${identity}`);
