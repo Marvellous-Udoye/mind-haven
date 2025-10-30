@@ -49,9 +49,20 @@ function EmailConfirmationContent() {
           setStatus("success");
           setMessage("Email verified successfully! Redirecting...");
 
-          // Redirect to home after successful verification
+          // Redirect to the appropriate dashboard after successful verification
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          const role = user?.user_metadata?.role;
+
           setTimeout(() => {
-            router.push("/");
+            if (role === "care_provider") {
+              router.push("/care-provider/home");
+            } else if (role === "care_seeker") {
+              router.push("/care-seeker/home");
+            } else {
+              router.push("/");
+            }
           }, 2000);
         }
       } catch {
