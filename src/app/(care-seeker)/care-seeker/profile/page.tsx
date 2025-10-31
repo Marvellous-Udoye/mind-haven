@@ -68,7 +68,7 @@ export default function ProfilePage() {
               {hydrated ? fullName : "Loading..."}
             </p>
             <p className="text-sm text-white/60">
-              {profile?.role === "provider" ? "Care Provider" : "Care Seeker"}
+              {profile?.role === "care_provider" ? "Care Provider" : "Care Seeker"}
             </p>
           </div>
         </div>

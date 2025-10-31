@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import MobileContainer from "../../../components/mobile-container";
 import { createClient } from "../../../utils/supabase/client";
-import type { UserIdentity } from "../../../types/user";
 
 function InputWrapper({
   icon,
@@ -32,6 +31,8 @@ function InputWrapper({
     </div>
   );
 }
+
+type Identity = "provider" | "seeker";
 
 interface FormState {
   firstName: string;
@@ -58,7 +59,7 @@ const initialState: FormState = {
 export default function RegistrationDetailsClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const identity: UserIdentity =
+  const identity: Identity =
     searchParams.get("identity") === "provider" ? "provider" : "seeker";
   const [formData, setFormData] = useState<FormState>(initialState);
   const [showPassword, setShowPassword] = useState(false);

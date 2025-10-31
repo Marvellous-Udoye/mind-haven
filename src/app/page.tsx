@@ -20,8 +20,8 @@ export default function OnboardingFlow() {
     if (!hydrated) return;
 
     // If user is authenticated and has a profile, redirect to their dashboard
-    if (user && profile) {
-      const dashboardPath = profile.role === 'provider'
+    if (user && profile?.role) {
+      const dashboardPath = profile.role === 'care_provider'
         ? '/care-provider/home'
         : '/care-seeker/home';
       router.push(dashboardPath);

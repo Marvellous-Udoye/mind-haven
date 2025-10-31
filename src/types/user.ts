@@ -1,6 +1,6 @@
 import { CareCategory, CareModule } from "./care";
 
-export type UserIdentity = "seeker" | "provider";
+export type UserIdentity = "care_seeker" | "care_provider";
 
 export interface UserProfile {
   id: string;

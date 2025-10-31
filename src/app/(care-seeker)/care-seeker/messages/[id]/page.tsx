@@ -62,7 +62,7 @@ export default function MessageDetailPage() {
           first_name: conversation.doctorName.split(' ')[0] || 'Doctor',
           last_name: conversation.doctorName.split(' ').slice(1).join(' ') || '',
           avatar_url: conversation.avatar,
-          role: "provider" as const,
+          role: "care_provider" as const,
         };
       }
     }
