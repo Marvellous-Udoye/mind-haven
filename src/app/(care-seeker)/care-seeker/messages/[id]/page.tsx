@@ -9,7 +9,7 @@ import { useCareSeekerExperience } from "../../../../../hooks/use-care-seeker-ex
 export default function MessageDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
-  const { messages, sendMessage } = useCareSeekerExperience();
+  const { messages, providers, sendMessage } = useCareSeekerExperience();
 
   // Get all messages for this conversation
   const conversationMessages = useMemo(() =>
@@ -17,57 +17,61 @@ export default function MessageDetailPage() {
     [messages, params.id]
   );
 
+  const doctorProfile = useMemo(
+    () => providers.find((provider) => provider.id === params.id),
+    [providers, params.id]
+  );
+
+  const doctorMessage = useMemo(
+    () =>
+      conversationMessages.find(
+        (msg) => msg.author === "doctor" || msg.sender?.role === "care_provider"
+      ),
+    [conversationMessages]
+  );
+
+  const doctorName =
+    (doctorProfile
+      ? `${doctorProfile.first_name} ${doctorProfile.last_name}`.trim()
+      : "") ||
+    (doctorMessage
+      ? `${doctorMessage.sender?.first_name ?? ""} ${
+          doctorMessage.sender?.last_name ?? ""
+        }`.trim()
+      : "") ||
+    "Doctor";
+
+  const doctorAvatar =
+    doctorProfile?.avatar_url ||
+    doctorMessage?.sender?.avatar_url ||
+    "/care-provider.png";
+
   const conversation = useMemo(() => {
-    const latestMessage = conversationMessages[conversationMessages.length - 1];
-    return latestMessage ? {
+    return {
       id: params.id,
       conversation_id: params.id,
-      doctorName: latestMessage.doctorName || "Doctor",
-      avatar: latestMessage.avatar || "/care-provider.png",
-      history: conversationMessages.map(msg => ({
+      doctorName,
+      avatar: doctorAvatar,
+      history: conversationMessages.map((msg) => ({
         author: msg.author,
         text: msg.text,
         at: msg.at,
       })),
-    } : null;
-  }, [conversationMessages, params.id]);
+    };
+  }, [conversationMessages, params.id, doctorName, doctorAvatar]);
 
   const [draft, setDraft] = useState("");
 
   // Handle navigation when conversation is not found
   useEffect(() => {
-    if (!conversation) {
+    if (providers.length > 0 && !doctorProfile) {
       router.replace("/care-seeker/messages");
     }
-  }, [conversation, router]);
-
-  if (!conversation) {
-    return null;
-  }
+  }, [providers.length, doctorProfile, router]);
 
   const handleSend = () => {
     if (!draft.trim()) return;
-    // For local conversations, we need to find the doctor info
-    const isLocalConversation = conversation.id.startsWith('local-');
-    let doctorInfo = null;
-
-    if (isLocalConversation) {
-      // Extract doctor ID from local conversation ID
-      const parts = conversation.id.split('-');
-      if (parts.length >= 4) {
-        const doctorId = parts[3];
-        // We would need to get doctor info from context, but for now we'll use the conversation info
-        doctorInfo = {
-          id: doctorId,
-          first_name: conversation.doctorName.split(' ')[0] || 'Doctor',
-          last_name: conversation.doctorName.split(' ').slice(1).join(' ') || '',
-          avatar_url: conversation.avatar,
-          role: "care_provider" as const,
-        };
-      }
-    }
-
-    sendMessage(conversation.id, draft.trim(), doctorInfo || undefined);
+    sendMessage(conversation.id, draft.trim());
     setDraft("");
   };
 

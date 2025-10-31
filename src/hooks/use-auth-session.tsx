@@ -32,6 +32,16 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const supabase = createClient();
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        setUser(data.session?.user ?? null);
+      })
+      .catch((error) => {
+        console.error("Error checking auth session:", error);
+      });
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {

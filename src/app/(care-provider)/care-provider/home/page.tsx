@@ -108,7 +108,7 @@ export default function CareProviderHome() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="font-semibold text-white">
-                      {appointment.patient || appointment.seeker_name} • {appointment.age || appointment.seeker_age} years
+                      {appointment.patient || appointment.seeker_name}
                     </p>
                     <p className="text-sm text-[#52c340]">
                       {appointment.type || appointment.module}

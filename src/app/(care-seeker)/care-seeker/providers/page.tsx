@@ -9,7 +9,6 @@ import { useCareSeekerExperience } from "../../../../hooks/use-care-seeker-exper
 import { useAuthSession } from "../../../../hooks/use-auth-session";
 import type { CareCategory, CareModule } from "../../../../types/care";
 import { UserProfile } from "../../../../types/user";
-import { createClient } from "@/src/utils/supabase/client";
 
 type BookingStep =
   | "care-type"
@@ -85,63 +84,13 @@ function ProviderFlowContent() {
     setStep("doctor-detail");
   };
 
-  const handleChatNow = async (doctor: UserProfile) => {
-    // Create conversation and navigate to messages
-    const supabase = createClient();
-    try {
-      // Check if conversation already exists between these two users
-      const { data: existingConv } = await supabase
-        .from("conversation_participants")
-        .select("conversation_id")
-        .eq("user_id", user?.id);
-
-      let conversationId = null;
-
-      if (existingConv) {
-        // Check if any of these conversations also has the doctor
-        for (const conv of existingConv) {
-          const { data: participants } = await supabase
-            .from("conversation_participants")
-            .select("user_id")
-            .eq("conversation_id", conv.conversation_id);
-
-          if (participants?.some((p: { user_id: string }) => p.user_id === doctor.id)) {
-            conversationId = conv.conversation_id;
-            break;
-          }
-        }
-      }
-
-      if (!conversationId) {
-        // Create new conversation
-        const { data: conversation, error: convError } = await supabase
-          .from("conversations")
-          .insert({})
-          .select()
-          .single();
-
-        if (convError) throw convError;
-
-        // Add participants - add both current user and doctor
-        const { error: partError } = await supabase
-          .from("conversation_participants")
-          .insert([
-            { conversation_id: conversation.id, user_id: user?.id },
-            { conversation_id: conversation.id, user_id: doctor.id }
-          ]);
-
-        if (partError) throw partError;
-
-        conversationId = conversation.id;
-      }
-
-      router.push(`/care-seeker/messages/${conversationId}`);
-    } catch (error) {
-      console.error("Error creating conversation:", error);
-      // Create a local conversation for the user instead of redirecting
-      const localConversationId = `local-${user?.id}-${doctor.id}-${Date.now()}`;
-      router.push(`/care-seeker/messages/${localConversationId}`);
+  const handleChatNow = (doctor: UserProfile) => {
+    if (!user) {
+      router.push("/login");
+      return;
     }
+
+    router.push(`/care-seeker/messages/${doctor.id}`);
   };
 
   const confirmAppointment = async () => {
