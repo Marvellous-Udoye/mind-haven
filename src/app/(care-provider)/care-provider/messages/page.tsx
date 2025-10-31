@@ -71,7 +71,7 @@ export default function CareProviderMessagesPage() {
     <div className="flex flex-col gap-6 pb-8">
       <h1 className="text-xl font-semibold text-[#52c340]">Messages</h1>
       {ordered.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 py-16 text-center text-white/60">
+        <div className="rounded-2xl border border-white/10 py-16 px-4 text-center text-white/60">
           You have no conversations yet. Accept a request to start chatting with
           patients.
         </div>

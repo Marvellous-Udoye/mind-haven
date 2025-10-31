@@ -122,33 +122,17 @@ function ProviderFlowContent() {
 
         if (convError) throw convError;
 
-        // Add participants - only add current user, let the other user be added when they respond
+        // Add participants - add both current user and doctor
         const { error: partError } = await supabase
           .from("conversation_participants")
           .insert([
-            { conversation_id: conversation.id, user_id: user?.id }
+            { conversation_id: conversation.id, user_id: user?.id },
+            { conversation_id: conversation.id, user_id: doctor.id }
           ]);
 
         if (partError) throw partError;
 
         conversationId = conversation.id;
-
-        // Send a dummy welcome message from the doctor
-        const { error: msgError } = await supabase
-          .from("messages")
-          .insert([
-            {
-              conversation_id: conversation.id,
-              sender_id: doctor.id,
-              author: "doctor",
-              text: `Hello! I'm ${doctor.first_name} ${doctor.last_name}. How can I help you today?`,
-            },
-          ]);
-
-        if (msgError) {
-          console.error("Error sending welcome message:", msgError);
-          // Don't throw here, conversation is still created
-        }
       }
 
       router.push(`/care-seeker/messages/${conversationId}`);

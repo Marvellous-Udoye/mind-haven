@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -12,25 +12,36 @@ export default function MessageDetailPage() {
   const { messages, sendMessage } = useCareSeekerExperience();
 
   // Get all messages for this conversation
-  const conversationMessages = messages.filter((m) => m.conversation_id === params.id);
-  const latestMessage = conversationMessages[conversationMessages.length - 1];
+  const conversationMessages = useMemo(() =>
+    messages.filter((m) => m.conversation_id === params.id),
+    [messages, params.id]
+  );
 
-  const conversation = latestMessage ? {
-    id: params.id,
-    conversation_id: params.id,
-    doctorName: latestMessage.doctorName || "Doctor",
-    avatar: latestMessage.avatar || "/care-provider.png",
-    history: conversationMessages.map(msg => ({
-      author: msg.author,
-      text: msg.text,
-      at: msg.at,
-    })),
-  } : null;
+  const conversation = useMemo(() => {
+    const latestMessage = conversationMessages[conversationMessages.length - 1];
+    return latestMessage ? {
+      id: params.id,
+      conversation_id: params.id,
+      doctorName: latestMessage.doctorName || "Doctor",
+      avatar: latestMessage.avatar || "/care-provider.png",
+      history: conversationMessages.map(msg => ({
+        author: msg.author,
+        text: msg.text,
+        at: msg.at,
+      })),
+    } : null;
+  }, [conversationMessages, params.id]);
 
   const [draft, setDraft] = useState("");
 
+  // Handle navigation when conversation is not found
+  useEffect(() => {
+    if (!conversation) {
+      router.replace("/care-seeker/messages");
+    }
+  }, [conversation, router]);
+
   if (!conversation) {
-    router.replace("/care-seeker/messages");
     return null;
   }
 
